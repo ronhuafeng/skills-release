@@ -1,0 +1,17 @@
+[project]
+name = "skills-openai-metadata"
+version = "0.1.0"
+description = "Primitive validation APIs for Codex skill agents/openai.yaml metadata."
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

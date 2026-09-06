@@ -1,0 +1,6 @@
+interface:
+  display_name: "Legacy Review & Cleanup"
+  short_description: "基于调用关系审查并删除失效实现、兼容路径与冲突文档"
+  default_prompt: "使用 $prune-legacy 审查指定范围中的 legacy 实现，只报告有证据的 findings。"
+policy:
+  allow_implicit_invocation: false

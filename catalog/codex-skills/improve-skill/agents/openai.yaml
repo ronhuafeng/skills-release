@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve a Skill"
+  short_description: "Review or improve a Skill from evidence"
+  default_prompt: "Use $improve-skill to review or improve this existing Skill from evidence."

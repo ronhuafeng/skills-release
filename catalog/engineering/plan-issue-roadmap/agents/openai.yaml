@@ -1,0 +1,4 @@
+interface:
+  display_name: "Plan an Issue Roadmap"
+  short_description: "Turn verified gaps into an ordered issue roadmap"
+  default_prompt: "Use $plan-issue-roadmap to verify the current repository and issue-tracker state, draft the smallest non-overlapping issue roadmap, and publish it only when I explicitly ask."

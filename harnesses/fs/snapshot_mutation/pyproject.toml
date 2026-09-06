@@ -1,0 +1,16 @@
+[project]
+name = "skills-snapshot-mutation"
+version = "0.1.0"
+description = "API-only guarded mutation for managed directory snapshot plans."
+requires-python = ">=3.11"
+dependencies = ["skills-snapshot-plan"]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = ["pytest>=8.0"]

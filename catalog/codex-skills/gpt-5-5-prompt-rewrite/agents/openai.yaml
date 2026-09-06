@@ -1,0 +1,7 @@
+interface:
+  display_name: "GPT-5.5 Prompt Rewrite"
+  short_description: "Rewrite prompts into goal-first contracts"
+  default_prompt: "Use $gpt-5-5-prompt-rewrite to rewrite this prompt for GPT-5.5 while preserving its intent and consequential constraints."
+
+policy:
+  allow_implicit_invocation: false

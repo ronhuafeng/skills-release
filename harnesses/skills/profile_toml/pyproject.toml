@@ -1,0 +1,19 @@
+[project]
+name = "skills-profile-toml"
+version = "0.1.0"
+description = "Primitive TOML profile APIs for Codex skill desired state."
+requires-python = ">=3.11"
+dependencies = [
+  "skills-frontmatter",
+]
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

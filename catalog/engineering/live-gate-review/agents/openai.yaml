@@ -1,0 +1,4 @@
+interface:
+  display_name: "Live Gate Review"
+  short_description: "Audit live gates for honest proof outcomes"
+  default_prompt: "Use $live-gate-review to audit whether this live gate can produce false acceptance, false rejection, or unsupported failure attribution."

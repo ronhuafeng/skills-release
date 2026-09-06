@@ -1,0 +1,4 @@
+interface:
+  display_name: "Context Reduce"
+  short_description: "Reduce context without weakening correctness"
+  default_prompt: "Use $context-reduce to review, without writing, what a maintainer must understand for one engineering change. Identify what can be removed or consolidated without weakening current behavior or correctness."

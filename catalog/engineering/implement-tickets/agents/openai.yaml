@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Tickets"
+  short_description: "Implement and integrate confirmed tickets"
+  default_prompt: "Use $implement-tickets with $implement, $tdd, and $code-review to process the ordered confirmed ticket list, then verify remote publication, remote validation, and integration."

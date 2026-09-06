@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+SKILL_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+if ! command -v uv >/dev/null 2>&1; then
+  printf '%s\n' '{"schema_version":1,"status":"blocked","error":"uv is unavailable"}'
+  exit 3
+fi
+
+exec uv run --quiet --locked --project "$SKILL_DIR/orchestration" tla-check "$@"

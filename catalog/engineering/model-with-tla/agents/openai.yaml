@@ -1,0 +1,4 @@
+interface:
+  display_name: "Model Concurrent Systems with TLA+"
+  short_description: "Model and verify concurrent and stateful systems with TLA+"
+  default_prompt: "Use $model-with-tla to select the narrowest command, establish the model contract, declare exact expected outcomes, and verify only the required abstractions, properties, refinement claims, and evidence boundaries."

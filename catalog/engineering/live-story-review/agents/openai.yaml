@@ -1,0 +1,4 @@
+interface:
+  display_name: "Live Story Review"
+  short_description: "Review Story contracts and bounded proof plans"
+  default_prompt: "Use $live-story-review to review this stable user-visible Story contract separately from its bounded proof plan."

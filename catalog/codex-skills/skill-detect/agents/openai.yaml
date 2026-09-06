@@ -1,0 +1,4 @@
+interface:
+  display_name: "Skill Detect"
+  short_description: "Detect reusable workflow skills"
+  default_prompt: "Use $skill-detect to analyze a session transcript and propose reusable skill improvements."

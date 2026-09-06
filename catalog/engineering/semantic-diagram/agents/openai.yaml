@@ -1,0 +1,4 @@
+interface:
+  display_name: "Semantic Diagram"
+  short_description: "Produce semantics-first, visually verified complex diagrams"
+  default_prompt: "Use $semantic-diagram to produce, refine, or review a source-grounded semantic diagram and deliver a visually verified result."

@@ -1,0 +1,39 @@
+[project]
+name = "skills-harnesses"
+version = "0.1.0"
+description = "API-only primitive harness workspace for reusable Codex skills."
+requires-python = ">=3.11"
+dependencies = [
+  "skills-frontmatter",
+  "skills-openai-metadata",
+  "skills-profile-toml",
+  "skills-snapshot-mutation",
+  "skills-snapshot-plan",
+  "skills-symlink-mutation",
+  "skills-symlink-plan",
+]
+
+[tool.uv.workspace]
+members = [
+  "fs/snapshot_mutation",
+  "fs/snapshot_plan",
+  "fs/symlink_mutation",
+  "fs/symlink_plan",
+  "skills/frontmatter",
+  "skills/openai_metadata",
+  "skills/profile_toml",
+]
+
+[tool.uv.sources]
+skills-frontmatter = { workspace = true }
+skills-openai-metadata = { workspace = true }
+skills-profile-toml = { workspace = true }
+skills-snapshot-mutation = { workspace = true }
+skills-snapshot-plan = { workspace = true }
+skills-symlink-mutation = { workspace = true }
+skills-symlink-plan = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0",
+]

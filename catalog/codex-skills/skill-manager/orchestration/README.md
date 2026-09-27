@@ -67,7 +67,9 @@ and concurrency fingerprints.
 
 The host runtime is a reproducible native executable built on each supported
 host platform. It is useful for bounded SSH evidence, not for remote mutation.
-Runtime installation is an explicit operator action outside this package.
+Use the [repository runtime installer](https://github.com/ronhuafeng/skills-release#runtime-prerequisites)
+from a clean full checkout. A copied Skill directory does not contain its shared
+Python build dependencies. Installation is separate from registry mutation.
 `apply` materializes pinned sources only at the declared
 `~/.cache/skill-manager/sources/<source_id>` paths. Invalid or dirty disposable
 checkouts can be rebuilt; development worktrees are never changed.

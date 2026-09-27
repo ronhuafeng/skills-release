@@ -22,7 +22,7 @@ Read the smallest authoritative path for the task:
 | Architecture simplification, interface selection, or over-design review | `catalog/engineering/context-reduce/SKILL.md` |
 | Session work | `catalog/codex-sessions/session-management/SKILL.md` and its selected command |
 | Issues or PRDs | [docs/agents/issue-tracker.md](./docs/agents/issue-tracker.md) |
-| Public release | [release/README.md](./release/README.md) and [release/public-files.txt](./release/public-files.txt) |
+| Installation or release | [README.md](./README.md) and [release/README.md](./release/README.md) |
 
 `catalog/` and each skill's metadata are the current catalog inventory. Do not
 maintain a duplicate skill list in this file.

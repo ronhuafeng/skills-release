@@ -3,10 +3,9 @@
 Open an Issue before a change that alters a Skill contract, public API, or
 repository structure. A focused correction can start as a pull request.
 
-The public repository is a release projection. A maintainer applies an
-accepted contribution to the canonical development source, preserves its
-authorship, and publishes it in a later release. Public pull requests are not
-merged directly into the release branch.
+Develop against this public repository. Submit focused pull requests to `main`.
+A maintainer reviews the scope and validation evidence before merging. No
+private repository or separate synchronization step is required.
 
 Keep a change reusable across projects. Do not add local paths, host inventory,
 session history, credentials, private deployment state, or copied upstream

@@ -1,7 +1,10 @@
 # Agent Skills
 
-Reusable Agent Skills and deterministic harnesses for engineering, skill
-management, and Codex session work.
+Reusable Agent Skills for engineering, skill management, and Codex session work.
+
+Users can use the Skills without the maintainer's private environment.
+Contributors can change and verify one capability without learning the whole
+repository. This public repository owns development, verification, and releases.
 
 The Skills favor user-visible outcomes, one clear authority, short execution
 paths, honest failure, and evidence that matches the claim. They add tooling
@@ -52,6 +55,37 @@ npx skills@latest add ronhuafeng/skills-release \
 Use [`skill-manager`](catalog/codex-skills/skill-manager/) only when placement
 needs ownership, provenance, or multi-host reconciliation.
 
+### Runtime prerequisites
+
+The installer copies Skill instructions and resources. It does not install
+system tools or compile executables. Read the selected Skill's precheck before
+use; some workflows also require external Skills or connected application tools.
+
+| Skill | Additional requirement |
+|-------|------------------------|
+| `skill-manager` | The `skill-manager` executable; Git and an explicit profile or Fleet configuration |
+| `session-management` | The `session-management` executable; Codex App tools for app-owned operations |
+| `model-with-tla` | uv and Java 11+; the checker and TLA+ JAR ship inside the Skill |
+
+Build a required executable from a full checkout, not from the copied Skill
+directory. Shared source dependencies stay in this repository:
+
+```sh
+git clone https://github.com/ronhuafeng/skills-release.git
+cd skills-release
+./install-runtime skill-manager "$HOME/.local/bin"
+# Only if using session-management:
+./install-runtime session-management "$HOME/.local/bin"
+```
+
+Build `skill-manager` with uv (which obtains the pinned Python version), or
+`session-management` with Go 1.23+. Put the chosen directory on your agent's
+`PATH`. The executables do not need this checkout after installation. To update,
+pull the accepted public revision and repeat the same install command.
+Building requires network access for locked dependencies. Runtime builds target
+the current machine; macOS Apple silicon and Linux x86-64 are the validation
+targets. Other platforms are not claimed as verified.
+
 ## Invocation
 
 A manual-only Skill runs only when the user names it. It sets
@@ -65,16 +99,13 @@ Codex display metadata.
 ## Validate changes
 
 Use [`docs/develop/gates.md`](docs/develop/gates.md) to select the required
-gate. Exact Python and Go commands live in the closest package README. Public
-CI runs the complete repository test set and verifies the public export from a
-clean checkout.
+gate. Exact Python and Go commands live in the closest package README. CI checks
+source behavior and installation separately.
 
 ## Releases
 
-Public `main` contains the current synchronized snapshot. `SOURCE_REVISION`
-identifies its exact source commit. Formal releases add repository-level
-semantic version tags to verified public commits. The public repository has
-independent history and never inherits the private development history.
+Public `main` is the development source. Formal releases add repository-level
+semantic version tags to verified public commits.
 See [`release/README.md`](release/README.md).
 
 ## Contributing and security

@@ -49,16 +49,43 @@ jobs:
       - run: GOWORK=off go build ./cmd/session-management
         working-directory: catalog/codex-sessions/session-management/orchestration-go
 
-  public-release:
-    runs-on: ubuntu-latest
+  installation:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-14]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11.11"
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.23.x"
+          cache-dependency-path: '**/go.sum'
+      - run: python -m pip install uv==0.6.6
       - run: git show --check --format=oneline HEAD
-      - run: ./release/export HEAD "$RUNNER_TEMP/public"
-      - run: test -f "$RUNNER_TEMP/public/LICENSE"
-      - run: test -f "$RUNNER_TEMP/public/README.md"
-      - run: test -f "$RUNNER_TEMP/public/THIRD_PARTY_NOTICES.md"
-      - run: >-
-          test -f
-          "$RUNNER_TEMP/public/catalog/engineering/model-with-tla/.tools/LICENSE.tlaplus.txt"
-      - run: test -f "$RUNNER_TEMP/public/SOURCE_REVISION"
+      - name: Install Skills from the clean checkout
+        run: |
+          mkdir "$RUNNER_TEMP/installed-skills"
+          cd "$RUNNER_TEMP/installed-skills"
+          npx -y skills@1.5.23 add "$GITHUB_WORKSPACE" --agent codex \
+            --skill session-management --skill skill-manager --skill model-with-tla -y
+      - run: ./install-runtime skill-manager "$RUNNER_TEMP/bin"
+      - run: ./install-runtime session-management "$RUNNER_TEMP/bin"
+      - name: Read synthetic input outside the checkout
+        working-directory: ${{ runner.temp }}/installed-skills
+        run: |
+          test -f .agents/skills/session-management/SKILL.md
+          test -f .agents/skills/skill-manager/SKILL.md
+          .agents/skills/model-with-tla/.tools/tla-check --help
+          printf '%s\n' '{"type":"installation_probe"}' > probe.jsonl
+          "$RUNNER_TEMP/bin/session-management" rollout "$(pwd -P)/probe.jsonl" > observed.jsonl
+          cmp probe.jsonl observed.jsonl
+          "$RUNNER_TEMP/bin/skill-manager" --identity
+          probe_repo="$(pwd -P)/repo"
+          mkdir -p "$probe_repo/.agents/skills"
+          printf '[source_roots]\n[sources]\n[global]\ninclude = []\n[repos."%s"]\ninclude = []\nvendor = []\n' "$probe_repo" > profile.toml
+          "$RUNNER_TEMP/bin/skill-manager" inspect --profile "$(pwd -P)/profile.toml" \
+            --registry "$probe_repo" "$probe_repo/.agents/skills" > inspection.json
+          python -c 'import json; d=json.load(open("inspection.json")); assert d["status"] == "success" and d["counts"]["registries"] == 1'

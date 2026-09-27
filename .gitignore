@@ -7,3 +7,5 @@ __pycache__/
 *.sqlite
 *.sqlite-*
 .tmp/
+codex_journal.md
+codex_journal.d/

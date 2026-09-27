@@ -4,11 +4,9 @@ Skill-owned Go orchestration for rollout, rename, partition, split, and rehome.
 
 ## Install
 
-From this directory:
-
-```bash
-GOWORK=off GOBIN="<absolute-directory-on-PATH>" go install ./cmd/session-management
-```
+Use the [repository runtime installer](https://github.com/ronhuafeng/skills-release#runtime-prerequisites)
+from a full checkout. A copied Skill directory does not include the shared Go
+modules required to build the executable.
 
 Runtime uses only:
 

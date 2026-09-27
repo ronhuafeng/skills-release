@@ -32,6 +32,7 @@ historical context, not implementation instructions.
 | [0030](../adr/0030-make-published-fleet-placements-authoritative.md) | Skill Manager | Make published Fleet placements authoritative | accepted |
 | [0031](../adr/0031-compose-one-host-fleet-apply.md) | Skill Manager | Compose one-host Fleet apply | accepted |
 | [0032](../adr/0032-render-fleet-owned-skill-policy-projections.md) | Skill Manager | Render Fleet-owned Skill policy projections | accepted |
+| [0033](../adr/0033-develop-in-the-public-repository.md) | Repository | Develop directly in the public repository | accepted |
 
 Status changes must update both the ADR frontmatter and this index in the same
 change.

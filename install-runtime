@@ -1,0 +1,58 @@
+#!/bin/sh
+set -eu
+
+usage() {
+    echo 'usage: ./install-runtime <skill-manager|session-management> <absolute-bin-directory>' >&2
+    exit 2
+}
+[ "$#" -eq 2 ] || usage
+runtime=$1
+destination=$2
+case "$runtime" in skill-manager|session-management) ;; *) usage ;; esac
+case "$destination" in /*) ;; *) usage ;; esac
+[ ! -d "$destination/$runtime" ] || {
+    echo "Install target is a directory: $destination/$runtime" >&2
+    exit 2
+}
+root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+build_dir=$(mktemp -d "${TMPDIR:-/tmp}/skills-runtime.XXXXXX")
+build_dir=$(CDPATH= cd -- "$build_dir" && pwd)
+trap 'rm -rf -- "$build_dir"' EXIT HUP INT TERM
+
+case "$runtime" in
+    skill-manager)
+        command -v uv >/dev/null 2>&1 || { echo 'Install uv first.' >&2; exit 2; }
+        package="$root/catalog/codex-skills/skill-manager/orchestration"
+        revision=$(git -C "$root" rev-parse HEAD)
+        # The bundled identity must name the source actually being installed.
+        test -z "$(git -C "$root" status --porcelain -- catalog/codex-skills/skill-manager/orchestration harnesses)" || {
+            echo 'Commit runtime source changes before installing skill-manager.' >&2
+            exit 2
+        }
+        SKILL_MANAGER_SOURCE_REVISION="$revision" PYTHONHASHSEED=0 SOURCE_DATE_EPOCH=0 \
+            uv run --python 3.11.11 --python-preference only-managed --locked \
+            --project "$package" --group build pyinstaller --clean --noconfirm \
+            --workpath "$build_dir/build" --distpath "$build_dir/dist" \
+            "$package/packaging/skill-manager.spec"
+        artifact="$build_dir/dist/skill-manager"
+        "$artifact" --identity
+        ;;
+    session-management)
+        command -v go >/dev/null 2>&1 || { echo 'Install Go 1.23 or newer first.' >&2; exit 2; }
+        (
+            cd "$root/catalog/codex-sessions/session-management/orchestration-go"
+            GOWORK=off go build -o "$build_dir/session-management" ./cmd/session-management
+        )
+        artifact="$build_dir/session-management"
+        : > "$build_dir/probe.jsonl"
+        "$artifact" rollout "$build_dir/probe.jsonl"
+        ;;
+esac
+
+mkdir -p "$destination"
+# Rename a completed file so an upgrade does not truncate a running executable.
+staged=$(mktemp "$destination/.$runtime.XXXXXX")
+trap 'rm -rf -- "$build_dir"; rm -f -- "$staged"' EXIT HUP INT TERM
+install -m 755 "$artifact" "$staged"
+mv -f "$staged" "$destination/$runtime"
+echo "Installed $destination/$runtime"

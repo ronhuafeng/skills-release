@@ -14,7 +14,7 @@ the question at hand; do not assemble current truth from every document.
 | How a primitive or orchestration API behaves | Its source and closest package README |
 | What validation a change requires | [develop/gates.md](./develop/gates.md) |
 | Where work and PRDs are tracked | [agents/issue-tracker.md](./agents/issue-tracker.md) |
-| What enters a public release | [release/public-files.txt](../release/public-files.txt) and [release/README.md](../release/README.md) |
+| How to publish a release | [release/README.md](../release/README.md) |
 | What happened in a past Codex session | Private `codex_journal*`, when present in a development checkout and history is explicitly requested |
 
 `catalog/` plus each skill's `SKILL.md` and optional `agents/openai.yaml` are

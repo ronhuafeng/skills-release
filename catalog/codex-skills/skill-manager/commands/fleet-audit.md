@@ -21,8 +21,9 @@ drift states, and completion gates.
 - For Local and SSH transports, send one versioned host-scoped JSON request to
   the configured absolute runtime. Do not substitute the coordinator process
   or expose another host's inventory.
-- Audit the in-memory profile projection, source Git identity and content, registry link targets
-  and metadata, repo remote identity, vendor provenance, repo-owned
+- Audit the in-memory profile projection, requested and effective invocation
+  policy, source Git identity and content, registry link targets and metadata,
+  repo remote identity, vendor provenance, repo-owned
   declarations, and Git visibility.
 - `converged` proves only the manifest-managed state. It does not prove that
   coding agents expose the same complete skill set through native directories,
@@ -69,8 +70,8 @@ diagnostics remain in the corresponding host's blockers.
 
 ## Report
 
-Report the manifest digest, overall state, each host state, drift codes,
-identity mismatches, ownership or evidence gaps, and before/after
+Report the manifest digest, overall state, each host state, effective Skill
+policies, drift codes, identity mismatches, ownership or evidence gaps, and before/after
 fingerprints. Report managed convergence separately from external effective
 exposure and cross-host visibility differences. Summarize large alias sets;
 preserve exact JSON privately when it is needed for repair planning.

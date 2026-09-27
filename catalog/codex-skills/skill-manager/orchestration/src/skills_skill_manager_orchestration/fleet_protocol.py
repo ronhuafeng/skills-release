@@ -8,7 +8,7 @@ from typing import Any
 from skills_profile_toml import normalize_profile, render_profile
 
 from .fleet_domain import (
-    FLEET_SCHEMA_VERSION,
+    HOST_AUDIT_SCHEMA_VERSION,
     SHA256_DIGEST_PATTERN,
     FleetConfigError,
     FleetManifest,
@@ -17,7 +17,6 @@ from .fleet_domain import (
     RepoSpec,
     SourceSpec,
     absolute_path,
-    index_source_skills,
     logical_id,
     reject_unknown_keys,
 )
@@ -101,10 +100,10 @@ class HostAuditRequest:
             "sources",
             "repos",
         )
-        if raw.get("schema_version") != FLEET_SCHEMA_VERSION:
+        if raw.get("schema_version") != HOST_AUDIT_SCHEMA_VERSION:
             raise FleetConfigError(
                 "host audit request schema_version must be "
-                f"{FLEET_SCHEMA_VERSION}"
+                f"{HOST_AUDIT_SCHEMA_VERSION}"
             )
         for field in required:
             if field not in raw:
@@ -143,7 +142,6 @@ class HostAuditRequest:
             )
             for source_id, path in raw_source_bindings.items()
         }
-        alias_owners = index_source_skills(sources)
         target_raw = dict(raw)
         target_raw["source_bindings"] = {
             source_id: {"path": path}
@@ -165,14 +163,6 @@ class HostAuditRequest:
             raise FleetConfigError(
                 "host audit repo bindings must exactly match repo records"
             )
-        for repo_id, binding in target.repo_bindings.items():
-            desired = set(binding.include) | set(binding.vendor)
-            unknown = sorted(desired - set(alias_owners))
-            if unknown:
-                raise FleetConfigError(
-                    f"repo {repo_id} refers to undeclared source alias(es): "
-                    + ", ".join(unknown)
-                )
         manifest_digest = str(raw["manifest_digest"])
         profile_digest = str(raw["profile_digest"])
         if not SHA256_DIGEST_PATTERN.fullmatch(manifest_digest):
@@ -188,6 +178,15 @@ class HostAuditRequest:
             ) from exc
         if render_profile(profile) != profile_toml:
             raise FleetConfigError("host audit profile_toml must be canonical")
+        profile_sources = set(profile.get("sources", {}))
+        for repo_id, binding in target.repo_bindings.items():
+            desired = set(binding.include) | set(binding.vendor)
+            unknown = sorted(desired - profile_sources)
+            if unknown:
+                raise FleetConfigError(
+                    f"repo {repo_id} refers to undeclared profile alias(es): "
+                    + ", ".join(unknown)
+                )
         if hashlib.sha256(profile_toml.encode()).hexdigest() != profile_digest:
             raise FleetConfigError(
                 "host audit profile_digest does not match profile_toml"
@@ -213,7 +212,7 @@ class HostAuditRequest:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "schema_version": FLEET_SCHEMA_VERSION,
+            "schema_version": HOST_AUDIT_SCHEMA_VERSION,
             "host_id": self.host_id,
             "enrollment_id": self.enrollment_id,
             "hostname": self.hostname,

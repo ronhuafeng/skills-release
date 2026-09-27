@@ -17,8 +17,9 @@ rendering rules.
   from the selected host binding.
 - Validate the complete selected host input, including transport, profile,
   runtime, global registry, source, and repo bindings.
-- Emit canonical profile TOML inside versioned JSON. Do not write the active
-  profile or inspect filesystem state.
+- Emit canonical profile TOML and the requested and effective Skill policies
+  inside versioned JSON. Do not write the active profile, materialize a derived
+  Skill projection, or inspect target filesystem state.
 - Return the same manifest and profile digests for equivalent normalized
   logical data regardless of TOML table or set ordering.
 

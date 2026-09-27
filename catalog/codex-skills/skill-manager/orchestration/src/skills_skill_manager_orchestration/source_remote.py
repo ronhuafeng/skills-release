@@ -13,6 +13,7 @@ from .fleet_domain import (
     FleetConfigError,
     SourceSkill,
     credential_free_fetch_url,
+    relative_path as validate_relative_path,
 )
 from .fleet_observe import git_tracked_status, normalize_git_remote, run_git
 from .source_policy import validate_link_source
@@ -247,6 +248,7 @@ def inspect_source_candidate(
     expected_origin: str,
     pinned_revision: str,
     candidate_revision: str,
+    discovery_path: str | None = None,
 ) -> dict[str, SourceSkill]:
     if not GIT_OBJECT_ID_PATTERN.fullmatch(candidate_revision):
         raise FleetConfigError("candidate revision must be a full commit")
@@ -293,32 +295,42 @@ def inspect_source_candidate(
     )
     if ancestry.returncode != 0:
         raise FleetConfigError("candidate revision is not a forward source update")
-    return _catalog_at_revision(resolved, candidate_revision)
+    return _catalog_at_revision(resolved, candidate_revision, discovery_path)
 
 
 def inspect_source_revision(
     source_root: Path | str,
     expected_origin: str,
     revision: str,
+    discovery_path: str | None = None,
 ) -> dict[str, SourceSkill]:
     if not GIT_OBJECT_ID_PATTERN.fullmatch(revision):
         raise FleetConfigError("source revision must be a full commit")
     resolved = _validated_source_root(source_root, expected_origin)
     if not _git_object_exists(resolved, f"{revision}^{{commit}}"):
         raise FleetConfigError("pinned source revision is unavailable")
-    return _catalog_at_revision(resolved, revision)
+    return _catalog_at_revision(resolved, revision, discovery_path)
 
 
 def _catalog_at_revision(
     resolved: Path,
     revision: str,
+    discovery_path: str | None = None,
 ) -> dict[str, SourceSkill]:
+    catalog_root = Path(".")
+    if discovery_path not in (None, "."):
+        catalog_root = Path(
+            validate_relative_path(discovery_path, "source discovery_path")
+        )
     discovered = {
         Path(path).parent.as_posix()
         for path in run_git(
             resolved, "ls-tree", "-r", "--name-only", revision
         ).splitlines()
         if path == "SKILL.md" or path.endswith("/SKILL.md")
+        if catalog_root == Path(".")
+        or Path(path).parent == catalog_root
+        or catalog_root in Path(path).parent.parents
     }
     paths: list[str] = []
     for path in sorted(discovered, key=lambda value: (len(Path(value).parts), value)):
@@ -361,6 +373,7 @@ def refresh_source_checkout(
     before_revision: str,
     after_revision: str,
     skills: dict[str, dict[str, Any]],
+    discovery_path: str | None = None,
 ) -> None:
     expected_catalog = {
         alias: SourceSkill.from_raw(alias, value)
@@ -371,6 +384,7 @@ def refresh_source_checkout(
         expected_origin,
         before_revision,
         after_revision,
+        discovery_path,
     )
     if observed_catalog != expected_catalog:
         raise FleetConfigError("candidate Skill catalog differs from the reviewed source")

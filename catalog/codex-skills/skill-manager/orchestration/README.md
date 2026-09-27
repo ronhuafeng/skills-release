@@ -51,6 +51,11 @@ desired state or hide semantic decisions.
 ## Fleet evidence
 
 The Fleet Manifest remains private durable desired state for enrolled hosts.
+Schema 5 can select a source default or per-Skill `implicit_invocation` policy
+and can alias conflicting native names. `apply` materializes only the required
+derived Skill copies under a manifest-digest cache; source checkouts remain
+exact and clean. The same projection writes Codex and Claude invocation fields,
+and its tree digest is bound into placement authority.
 `enroll` validates a clean exact commit published on `origin/main`, selects the
 current hostname and username, and writes the minimal private local identity.
 `render-profile` validates it and derives canonical profile bytes. Neither

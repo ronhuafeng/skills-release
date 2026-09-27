@@ -8,6 +8,35 @@ from typing import Any
 from skills_profile_toml import render_profile
 
 from .fleet_domain import FLEET_SCHEMA_VERSION, FleetManifest
+from .skill_projection import projection_path
+
+
+def host_skill_policies(
+    manifest: FleetManifest,
+    host_id: str,
+) -> dict[str, dict[str, Any]]:
+    host = manifest.host(host_id)
+    desired = set(host.desired_global(manifest.global_include))
+    for binding in host.repo_bindings.values():
+        desired.update(binding.include)
+        desired.update(binding.vendor)
+    result: dict[str, dict[str, Any]] = {}
+    for alias in sorted(desired):
+        resolved = manifest.resolved_skill(alias)
+        configured = manifest.skills.get(alias)
+        result[alias] = {
+            "source": resolved.source_id,
+            "source_name": resolved.source_name,
+            "source_default": manifest.sources[
+                resolved.source_id
+            ].default_implicit_invocation,
+            "skill_override": (
+                "default" if configured is None else configured.implicit_invocation
+            ),
+            "effective": resolved.implicit_invocation,
+            "projected": resolved.requires_projection,
+        }
+    return result
 
 
 def render_manifest_host(
@@ -26,17 +55,17 @@ def render_manifest_host(
         desired_aliases.update(binding.include)
         desired_aliases.update(binding.vendor)
 
-    alias_owners = manifest.alias_owners
     rendered_sources: dict[str, str] = {}
     required_source_ids: set[str] = set()
     for alias in sorted(desired_aliases):
-        source_id = alias_owners[alias]
-        source = manifest.sources[source_id]
+        skill = manifest.resolved_skill(alias)
+        source_id = skill.source_id
         checkout_root = host.source_bindings[source_id].path
         required_source_ids.add(source_id)
-        rendered_sources[alias] = posixpath.join(
-            checkout_root,
-            source.skills[alias].relative_path,
+        rendered_sources[alias] = (
+            projection_path(manifest, host, skill)
+            if skill.requires_projection
+            else posixpath.join(checkout_root, skill.relative_path)
         )
 
     profile = {
@@ -62,6 +91,7 @@ def render_manifest_host(
         "manifest_digest": manifest.digest,
         "profile_digest": hashlib.sha256(profile_toml.encode()).hexdigest(),
         "profile_toml": profile_toml,
+        "skill_policies": host_skill_policies(manifest, host_id),
         "validation_blockers": [],
     }
 
@@ -76,4 +106,4 @@ def render_host_profile(
     return render_manifest_host(manifest, host_id)
 
 
-__all__ = ["render_host_profile", "render_manifest_host"]
+__all__ = ["host_skill_policies", "render_host_profile", "render_manifest_host"]

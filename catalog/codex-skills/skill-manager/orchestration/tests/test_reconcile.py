@@ -118,7 +118,7 @@ def _published_fleet(
     _git(checkout, "config", "user.name", "Test")
     manifest = checkout / "fleet.toml"
     manifest.write_text(
-        f'''schema_version = 4
+        f'''schema_version = 5
 
 [global]
 include = ["demo"]

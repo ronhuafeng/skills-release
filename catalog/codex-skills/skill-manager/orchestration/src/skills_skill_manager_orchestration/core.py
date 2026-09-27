@@ -143,7 +143,16 @@ def _validate_authoritative_sources(
         authority.source_tree_oids
     ):
         raise ValueError("sources do not match accepted Fleet revision")
+    if not set(authority.projected_source_digests) <= set(sources):
+        raise ValueError("projected sources do not match accepted Fleet revision")
     for alias, source in sorted(sources.items()):
+        projected_digest = authority.projected_source_digests.get(alias)
+        if projected_digest is not None:
+            if tree_digest(source) != projected_digest:
+                raise ValueError(
+                    f"projected source {alias} differs from accepted Fleet revision"
+                )
+            continue
         root = Path(run_git(source, "rev-parse", "--show-toplevel")).resolve()
         if run_git(root, "rev-parse", "HEAD") != authority.source_revisions[alias]:
             raise ValueError(f"source {alias} is not at its accepted revision")

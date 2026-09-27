@@ -14,6 +14,7 @@ deterministic runtime-profile rendering.
 | Managed snapshot | Registered source and target repo lock | Provenance-bound real directory |
 | Repo-owned Skill | Target repository | Tracked real directory and committed ownership declaration |
 | Global or linked Skill | Registered source | Host-local symlink |
+| Derived Skill projection | Fleet manifest, pinned source, and one host binding | Disposable copy under `~/.cache/skill-manager/rendered/<manifest-digest>/` |
 | Runtime profile | Fleet manifest and one host binding | Canonical in-memory projection; configured path is compatibility metadata only |
 
 `host_id`, `repo_id`, and `source_id` are stable logical identities. Each host
@@ -26,14 +27,17 @@ are bindings, not identity. Canonical Git identity is
 
 Each Git source records its canonical origin and full accepted commit. The
 catalog inspection primitive derives Skill names, paths, and lowercase
-40-character tree object IDs from that revision. Managed snapshots retain separate filesystem SHA-256
-provenance. One Skill name must resolve to exactly one declared source.
+40-character tree object IDs from that revision, scoped to the Host Source
+Binding's `discovery_path` when it is set. Managed snapshots retain
+separate filesystem SHA-256 provenance. Duplicate native names can exist across
+sources, but every desired Fleet alias must resolve unambiguously. Use an
+explicit `[skills.<alias>]` record to select and, when needed, rename one.
 
 ## Desired-State Authority
 
-The Fleet Manifest owns accepted sources, common global availability,
-host-specific additions and removals, host-specific Linked or Vendored repo
-placement, logical identities, and Host Bindings.
+The Fleet Manifest owns accepted sources, Skill aliases and invocation policy,
+common global availability, host-specific additions and removals, host-specific
+Linked or Vendored repo placement, logical identities, and Host Bindings.
 
 Repo-owned aliases remain repository authority. Declare them at:
 
@@ -95,17 +99,34 @@ must not become a second runtime-state registry.
 
 ## Manifest Shape
 
-Schema 4 adds enrollment ID, hostname, and username to every Host Binding.
+Schema 5 adds source-level invocation defaults and explicit Skill records.
+Schema 4 added enrollment ID, hostname, and username to every Host Binding.
 Enrollment IDs and host/user selectors are unique across the manifest. Logical
 source and repo identity remain stored once, while absolute paths remain only
 inside Host Bindings. Repo placement exists only on hosts with an explicit
 repo binding. A Host Source Binding owns the manager checkout `path`, its
 credential-free `fetch_url`, and an optional relative `discovery_path`.
 
-Source tables contain only `kind`, canonical `origin`, and full `revision`.
-They do not duplicate the catalog. A path move keeps placement when the Skill
-name is stable. A removed referenced name is removed from managed placements
-unless evidence and user approval support a semantic replacement.
+Source tables contain `kind`, canonical `origin`, full `revision`, and an
+optional invocation default. They do not duplicate the catalog. A path move
+keeps placement when the Skill name is stable. A removed referenced name is
+removed from managed placements unless evidence and user approval support a
+semantic replacement.
+
+```toml
+[sources.emil.defaults]
+implicit_invocation = "deny"
+
+[skills.emil-prototype]
+source = "emil"
+source_name = "prototype"
+implicit_invocation = "default"
+```
+
+`implicit_invocation` accepts only `default`, `allow`, or `deny`. The effective
+value is the explicit Skill override when it is not `default`, then the source
+default, then unchanged upstream metadata when both are `default`.
+`default` means inherit; it does not force an agent-specific value.
 
 Host-global aliases are:
 
@@ -134,12 +155,18 @@ Rendering:
 2. Derives complete host-global availability.
 3. Selects only repositories bound on that host.
 4. Resolves every desired alias through one source and Host Source Binding.
-5. Rejects relative bindings, path traversal, missing bindings, and conflicts.
-6. Emits `[source_roots]` only for required bindings with `discovery_path` and
+5. Selects a digest-bound derived projection when an alias or invocation
+   override changes upstream behavior. The projection rewrites Codex
+   `policy.allow_implicit_invocation` and Claude
+   `disable-model-invocation` consistently.
+6. Rejects relative bindings, path traversal, missing bindings, and conflicts.
+7. Emits `[source_roots]` only for required bindings with `discovery_path` and
    emits `[sources]` only for aliases required on that host.
-7. Emits repo tables from Host Bindings; Owned aliases do not enter the profile.
-8. Sorts keys, paths, and alias lists and uses one trailing newline.
+8. Emits repo tables from Host Bindings; Owned aliases do not enter the profile.
+9. Sorts keys, paths, and alias lists and uses one trailing newline.
 
 The manifest digest covers canonical validated logical data. The profile digest
 covers exact UTF-8 output bytes. Equivalent manifest and pinned Git revisions
-produce byte-equal output without reading target registry state.
+produce byte-equal output without reading target registry state. Renderer and
+Fleet audit output expose source defaults, Skill overrides, effective policy,
+and whether a derived projection is required.

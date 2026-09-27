@@ -29,15 +29,19 @@ The command creates or rebuilds that disposable checkout at the pinned commit.
 The same Host Source Binding supplies a credential-free `fetch_url`. Its
 canonical Git identity must equal the source `origin`; this preserves the
 host's chosen HTTPS, SSH alias, and port without putting credentials in Fleet.
-It never resets, checks out, or removes a development worktree. It derives the
-profile in memory, plans all target changes before target mutation, applies
-links and snapshots serially through digest-bound primitives, and reads the
-host again after the last attempted effect.
+It never resets, checks out, or removes a development worktree. It derives any
+required alias or invocation-policy projection under
+`~/.cache/skill-manager/rendered/<manifest-digest>/`, then derives the profile
+in memory. A projection is a disposable copy of the exact pinned Skill. It can
+change only the frontmatter name and the Codex and Claude invocation-policy
+fields selected by Fleet. The command plans all target changes before target
+mutation, applies links and snapshots serially through digest-bound primitives,
+and reads the host again after the last attempted effect.
 
 The receipt is versioned and contains the enrolled target, exact Fleet commit,
-manifest digest, source and placement actions, before and after fingerprints,
-placement readback, Fleet audit status, pending repository publication, and any
-partial-failure error. A failed effect reports its applied action count as
+manifest digest, source, projection, policy, and placement actions, before and
+after fingerprints, placement readback, Fleet audit status, pending repository
+publication, and any partial-failure error. A failed effect reports its applied action count as
 unknown; it never guesses zero. It is deployment evidence, not
 desired state. Do not commit receipts, generated profiles, or plan artifacts to
 the Fleet repository.

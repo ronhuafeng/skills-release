@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any
 from skills_profile_toml import normalize_profile, validate_skill_name
 
 from .fleet_domain import (
-    FLEET_SCHEMA_VERSION,
+    HOST_AUDIT_SCHEMA_VERSION,
     GIT_OBJECT_ID_PATTERN,
     SHA256_DIGEST_PATTERN,
     FleetConfigError,
@@ -108,11 +108,11 @@ def _validate_envelope(
         raise FleetConfigError(f"host audit response missing field: {missing[0]}")
     if (
         type(raw["schema_version"]) is not int
-        or raw["schema_version"] != FLEET_SCHEMA_VERSION
+        or raw["schema_version"] != HOST_AUDIT_SCHEMA_VERSION
     ):
         raise FleetConfigError(
             "host audit response schema_version must be "
-            f"{FLEET_SCHEMA_VERSION}"
+            f"{HOST_AUDIT_SCHEMA_VERSION}"
         )
     if _response_string(raw["host_id"], "host_id") != expected_request.host_id:
         raise FleetConfigError("host audit response host_id does not match request")
@@ -179,7 +179,7 @@ def _validate_runtime(
             runtime["protocol_version"],
             "runtime.protocol_version",
         )
-        != FLEET_SCHEMA_VERSION
+        != HOST_AUDIT_SCHEMA_VERSION
         or _response_bool(runtime["available"], "runtime.available") is not True
     ):
         raise FleetConfigError("host audit response runtime is incompatible")

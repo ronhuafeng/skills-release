@@ -24,7 +24,7 @@ proves.
 | Session-management orchestration | From `catalog/codex-sessions/session-management/orchestration-go`: `GOWORK=off go test ./... -count=1`, `go vet ./...`, and build the command when executable wiring changes |
 | Skill metadata or routing | The closest metadata validator plus a real Codex discovery check when invocation behavior is claimed |
 | Host, registry, snapshot, session, or app mutation | Relevant Contract/Integration gates plus a scoped Live proof and post-mutation state readback |
-| Public release | Export one exact commit through `release/export`; scan the exported tree for secrets; run public CI from a clean checkout; verify the public commit and tag by readback; list and install from the public URL with one recorded `skills` CLI version |
+| Public sync or release | Export one exact commit through `release/export`; scan the exported tree for secrets; run public CI from a clean checkout; verify independent public ancestry, exact exported content, and the remote commit by readback; list and install from the public URL with one recorded `skills` CLI version; verify the tag when creating a formal release |
 
 Use `uv run python ...` for repository Python execution. A one-off command that
 needs a missing dependency uses a temporary uv dependency environment; it does

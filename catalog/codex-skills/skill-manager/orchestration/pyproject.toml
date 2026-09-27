@@ -1,9 +1,10 @@
 [project]
 name = "skills-skill-manager-orchestration"
-version = "0.12.0"
+version = "0.13.0"
 description = "Skill evidence and guarded placement primitives for Agent reconciliation."
 requires-python = ">=3.11"
 dependencies = [
+  "pyyaml>=6.0",
   "skills-frontmatter",
   "skills-openai-metadata",
   "skills-profile-toml",

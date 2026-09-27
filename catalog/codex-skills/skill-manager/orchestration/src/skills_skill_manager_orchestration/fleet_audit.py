@@ -10,7 +10,7 @@ from skills_frontmatter import scan_skill_dir
 from skills_snapshot_plan import SnapshotRecord, manifest_digest, tree_manifest
 
 from .enrollment import current_host_user, read_host_identity
-from .fleet_domain import FLEET_SCHEMA_VERSION, canonical_digest
+from .fleet_domain import HOST_AUDIT_SCHEMA_VERSION, canonical_digest
 from .fleet_observe import (
     file_digest as _file_digest,
 )
@@ -699,14 +699,14 @@ def audit_host(spec: HostAuditRequest) -> dict[str, Any]:
     else:
         status = "converged"
     result = {
-        "schema_version": FLEET_SCHEMA_VERSION,
+        "schema_version": HOST_AUDIT_SCHEMA_VERSION,
         "host_id": spec.host_id,
         "transport": spec.transport,
         "endpoint": spec.endpoint,
         "status": status,
         "runtime": {
             "path": spec.runtime,
-            "protocol_version": FLEET_SCHEMA_VERSION,
+            "protocol_version": HOST_AUDIT_SCHEMA_VERSION,
             "available": True,
         },
         "identity": identity_result,

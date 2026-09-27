@@ -64,8 +64,9 @@ through `apply`; do not manually assemble public mutation requests.
 - Use guarded link or snapshot plan/apply primitives for filesystem placement.
   Accepted Fleet authority can restore names inside its exact scope; otherwise
   never overwrite an unknown directory or a divergent managed snapshot.
-- Treat `agents/openai.yaml` as source content. Invocation policy comes only
-  from `policy.allow_implicit_invocation`.
+- Treat upstream Skill content as immutable. When Fleet config overrides
+  invocation policy or aliases a conflicting source name, `apply` creates a
+  disposable derived Skill projection. It never edits the pinned checkout.
 - Before claiming that a work environment has complete or equivalent skill
   visibility, inspect bounded agent-native and agent-reported exposure outside
   the managed registry. Discovery supplies evidence; it does not grant

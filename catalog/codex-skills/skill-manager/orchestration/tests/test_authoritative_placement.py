@@ -138,6 +138,7 @@ def _authority(
         },
         source_revisions=revisions,
         source_tree_oids=tree_oids,
+        projected_source_digests={},
     )
 
 

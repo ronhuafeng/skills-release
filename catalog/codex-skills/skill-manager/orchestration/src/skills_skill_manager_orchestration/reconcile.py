@@ -24,12 +24,13 @@ from .fleet_audit import audit_host
 from .fleet_domain import FleetConfigError, FleetManifest, canonical_digest
 from .fleet_observe import file_digest, registry_fingerprint, run_git
 from .fleet_protocol import HostAuditRequest
-from .fleet_render import render_manifest_host
+from .fleet_render import host_skill_policies, render_manifest_host
 from .source_remote import (
     inspect_source_revision,
     materialize_source_checkout,
     validate_fetch_url,
 )
+from .skill_projection import materialize_host_projections
 
 
 RECEIPT_VERSION = 1
@@ -48,6 +49,7 @@ def apply_fleet_revision(
 
     before_fingerprint = _deployment_fingerprint(manifest, host.host_id)
     source_actions: list[dict[str, Any]] = []
+    projection_actions: list[dict[str, Any]] = []
     phases: list[dict[str, Any]] = []
     error: str | None = None
     authority: AcceptedFleetRevision | None = None
@@ -72,10 +74,15 @@ def apply_fleet_revision(
                     host.source_bindings[source_id].path,
                     source.origin,
                     source.revision,
+                    host.source_bindings[source_id].discovery_path,
                 )
                 for source_id, source in sorted(manifest.sources.items())
             }
             resolved = manifest.with_catalogs(catalogs)
+            projection_actions = materialize_host_projections(
+                resolved,
+                host.host_id,
+            )
             authority = accept_current_fleet_revision(
                 manifest_path,
                 revision,
@@ -177,6 +184,12 @@ def apply_fleet_revision(
         "config_revision": revision,
         "manifest_digest": manifest.digest,
         "source_actions": source_actions,
+        "projection_actions": projection_actions,
+        "skill_policies": (
+            {}
+            if authority is None
+            else host_skill_policies(resolved, host.host_id)
+        ),
         "actions": phases,
         "before_fingerprint": before_fingerprint,
         "after_fingerprint": after_fingerprint,

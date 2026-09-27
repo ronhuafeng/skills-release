@@ -71,10 +71,11 @@ clean checkout.
 
 ## Releases
 
-Release tags use repository-level semantic versions. `SOURCE_REVISION` in a
-published tree identifies the exact source commit used to create that release.
-The public repository has independent history and never inherits the private
-development history. See [`release/README.md`](release/README.md).
+Public `main` contains the current synchronized snapshot. `SOURCE_REVISION`
+identifies its exact source commit. Formal releases add repository-level
+semantic version tags to verified public commits. The public repository has
+independent history and never inherits the private development history.
+See [`release/README.md`](release/README.md).
 
 ## Contributing and security
 

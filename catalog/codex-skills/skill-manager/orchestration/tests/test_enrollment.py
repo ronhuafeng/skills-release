@@ -56,7 +56,7 @@ def _host(*, enrollment_id: str = ENROLLMENT_ID) -> dict[str, object]:
 
 def _raw_manifest(*hosts: tuple[str, dict[str, object]]) -> dict[str, object]:
     return {
-        "schema_version": 4,
+        "schema_version": 5,
         "global": {"include": []},
         "sources": {},
         "repos": {},
@@ -103,7 +103,7 @@ def _published_checkout(tmp_path: Path) -> tuple[Path, Path, str]:
 
 
 def _manifest_toml() -> str:
-    return f'''schema_version = 4
+    return f'''schema_version = 5
 
 [global]
 include = []
@@ -136,6 +136,31 @@ def test_manifest_rejects_duplicate_enrollment_id_and_host_user_selector() -> No
         FleetManifest.from_raw(
             _raw_manifest(("first", _host()), ("second", duplicate_selector))
         )
+
+
+def test_manifest_rejects_source_discovery_path_disagreement() -> None:
+    first = _host()
+    second = _host(
+        enrollment_id="32bd7cb8-5508-4d30-881d-02e98d7fea15"
+    )
+    second["hostname"] = "different"
+    first["sources"] = {
+        "shared": {"path": "/tmp/first", "discovery_path": "skills"}
+    }
+    second["sources"] = {
+        "shared": {"path": "/tmp/second", "discovery_path": "internal"}
+    }
+    raw = _raw_manifest(("first", first), ("second", second))
+    raw["sources"] = {
+        "shared": {
+            "kind": "git",
+            "origin": "example.com/owner/source",
+            "revision": "1" * 40,
+        }
+    }
+
+    with pytest.raises(FleetConfigError, match="discovery_path must agree"):
+        FleetManifest.from_raw(raw)
 
 
 @pytest.mark.parametrize("field", ["enrollment_id", "hostname", "username"])

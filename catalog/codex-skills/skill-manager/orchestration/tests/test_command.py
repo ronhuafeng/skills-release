@@ -14,7 +14,6 @@ from skills_profile_toml import render_profile
 from skills_snapshot_plan import tree_digest
 
 from skills_skill_manager_orchestration.fleet import (
-    FleetConfigError,
     FleetManifest,
     normalize_git_remote,
 )
@@ -67,7 +66,7 @@ def git_tree_oid(root: Path, relative_path: str) -> str:
     ).stdout.strip()
 
 
-def test_host_audit_request_rejects_duplicate_aliases_across_sources() -> None:
+def test_host_audit_request_accepts_duplicate_native_names_across_sources() -> None:
     profile_toml = render_profile(
         {
             "source_roots": {
@@ -107,19 +106,17 @@ def test_host_audit_request_rejects_duplicate_aliases_across_sources() -> None:
                 "kind": "git",
                 "origin": f"example.com/owner/{source_id}",
                 "revision": "0" * 40,
-                    "skills": {"demo": alias},
+                "skills": {"demo": alias},
             }
             for source_id in ("first", "second")
         },
         "repos": {},
     }
 
-    try:
-        HostAuditRequest.from_raw(request)
-    except FleetConfigError as exc:
-        assert str(exc) == "source alias is declared more than once: demo"
-    else:
-        raise AssertionError("duplicate cross-source alias was accepted")
+    parsed = HostAuditRequest.from_raw(request)
+
+    assert set(parsed.sources) == {"first", "second"}
+    assert parsed.profile_toml == profile_toml
 
 
 def test_plan_and_apply_run_outside_skills_repo_with_digest_binding(
@@ -1437,7 +1434,7 @@ def test_render_profile_uses_host_specific_repo_desired_state(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = ["global-skill"]
@@ -1501,7 +1498,7 @@ path = "/remote/shared"
     resolved = FleetManifest.load(manifest).with_catalogs(catalog)
     local_result = render_manifest_host(resolved, "local")
     remote_result = render_manifest_host(resolved, "remote")
-    assert local_result["schema_version"] == 4
+    assert local_result["schema_version"] == 5
     assert local_result["profile_toml"] == (
         "[sources]\n"
         f'"global-skill" = "{tmp_path}/shared/skills/global-skill"\n'
@@ -1514,7 +1511,7 @@ path = "/remote/shared"
         "include = []\n"
         'vendor = ["repo-skill"]\n'
     )
-    assert remote_result["schema_version"] == 4
+    assert remote_result["schema_version"] == 5
     assert remote_result["profile_toml"] == (
         "[sources]\n"
         '"global-skill" = "/remote/shared/skills/global-skill"\n'
@@ -1535,7 +1532,7 @@ def test_render_profile_rejects_superseded_common_repo_desired_state(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1577,7 +1574,7 @@ def test_render_profile_rejects_noncanonical_source_origin(tmp_path: Path) -> No
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1622,7 +1619,7 @@ def test_render_profile_rejects_relative_runtime_binding(tmp_path: Path) -> None
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1661,7 +1658,7 @@ def test_render_profile_manifest_digest_ignores_set_order(tmp_path: Path) -> Non
     def write_manifest(global_names: list[str]) -> None:
         manifest.write_text(
             f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = {json.dumps(global_names)}
@@ -1714,7 +1711,7 @@ def test_render_profile_rejects_invalid_host_source_binding(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1782,7 +1779,7 @@ def test_render_profile_rejects_unknown_host_source_binding(tmp_path: Path) -> N
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1824,7 +1821,7 @@ def test_render_profile_validates_unselected_hosts_and_unique_repo_paths(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -1914,7 +1911,7 @@ def test_render_profile_manifest_digest_normalizes_host_paths(tmp_path: Path) ->
     def write_manifest() -> None:
         manifest.write_text(
             f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -2036,7 +2033,7 @@ def test_fleet_audit_reports_converged_local_host_without_mutation(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = ["demo"]
@@ -2078,7 +2075,8 @@ discovery_path = "skills"
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
-    assert payload["schema_version"] == 4
+    assert payload["schema_version"] == 5
+    assert payload["hosts"][0]["schema_version"] == 4
     assert payload["status"] == "converged"
     assert len(payload["hosts"]) == 1
     host = payload["hosts"][0]
@@ -2267,7 +2265,7 @@ def test_fleet_audit_verifies_repo_links_snapshots_ownership_and_git_visibility(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []
@@ -2581,7 +2579,7 @@ def test_host_audit_protocol_entrypoint_is_not_user_facing(tmp_path: Path) -> No
 
 def test_fleet_audit_rejects_empty_host_selection(tmp_path: Path) -> None:
     manifest = tmp_path / "fleet.toml"
-    manifest.write_text("schema_version = 4\n")
+    manifest.write_text("schema_version = 5\n")
 
     result = run_command(
         tmp_path,

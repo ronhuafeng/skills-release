@@ -77,7 +77,7 @@ def test_bundle_rebuilds_identically_and_runs_schema_4_audit(tmp_path: Path) -> 
     assert identity.returncode == 0, identity.stderr
     assert json.loads(identity.stdout) == {
         "artifact_name": "skill-manager-runtime",
-        "artifact_version": "0.12.0",
+        "artifact_version": "0.13.0",
         "fleet_protocol_version": 4,
         "host_protocol_version": 6,
         "identity_version": 1,
@@ -141,7 +141,7 @@ def test_bundle_rebuilds_identically_and_runs_schema_4_audit(tmp_path: Path) -> 
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = ["demo"]
@@ -193,7 +193,8 @@ discovery_path = "."
 
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
-    assert payload["schema_version"] == 4
+    assert payload["schema_version"] == 5
+    assert payload["hosts"][0]["schema_version"] == 4
     assert payload["status"] == "converged"
     host = payload["hosts"][0]
     assert host["status"] == "converged"

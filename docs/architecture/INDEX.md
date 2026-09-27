@@ -31,6 +31,7 @@ historical context, not implementation instructions.
 | [0029](../adr/0029-enroll-host-users-from-published-fleet-revisions.md) | Skill Manager | Enroll host users from published Fleet revisions | accepted |
 | [0030](../adr/0030-make-published-fleet-placements-authoritative.md) | Skill Manager | Make published Fleet placements authoritative | accepted |
 | [0031](../adr/0031-compose-one-host-fleet-apply.md) | Skill Manager | Compose one-host Fleet apply | accepted |
+| [0032](../adr/0032-render-fleet-owned-skill-policy-projections.md) | Skill Manager | Render Fleet-owned Skill policy projections | accepted |
 
 Status changes must update both the ADR frontmatter and this index in the same
 change.

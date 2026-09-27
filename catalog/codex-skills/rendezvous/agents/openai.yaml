@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rendezvous · 会合"
+  short_description: "交出外部等待，在条件满足时恢复会话，减少重复查询和无效推理"
+  default_prompt: "使用 $rendezvous 接管指定会话对外部工作的等待，在相关条件满足后通知会话继续，并说明当前机制的局限。"

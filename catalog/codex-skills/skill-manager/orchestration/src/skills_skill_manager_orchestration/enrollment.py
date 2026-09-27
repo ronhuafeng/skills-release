@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from skills_snapshot_plan import tree_digest
+
 from .fleet_domain import (
     GIT_OBJECT_ID_PATTERN,
     FleetConfigError,
@@ -41,6 +43,7 @@ class AcceptedFleetRevision:
     repo_origins: dict[str, str]
     source_revisions: dict[str, str]
     source_tree_oids: dict[str, str]
+    projected_source_digests: dict[str, str]
 
     def __post_init__(self) -> None:
         if not GIT_OBJECT_ID_PATTERN.fullmatch(self.revision):
@@ -123,12 +126,14 @@ def accept_current_fleet_revision(
             raise FleetConfigError("resolved Fleet Manifest differs from published input")
         resolved = resolved_manifest
     rendered = render_manifest_host(resolved, host.host_id)
+    rendered_profile = tomllib.loads(str(rendered["profile_toml"]))
     desired_aliases = set(host.desired_global(resolved.global_include))
     for binding in host.repo_bindings.values():
         desired_aliases.update(binding.include)
         desired_aliases.update(binding.vendor)
     for alias in sorted(desired_aliases):
-        source_id = resolved.alias_owners[alias]
+        skill = resolved.resolved_skill(alias)
+        source_id = skill.source_id
         source = resolved.sources[source_id]
         root = Path(host.source_bindings[source_id].path)
         if run_git(root, "rev-parse", "HEAD") != source.revision:
@@ -141,7 +146,6 @@ def accept_current_fleet_revision(
             "--untracked-files=all",
         ):
             raise FleetConfigError(f"source {source_id} checkout is not clean")
-        skill = source.skills[alias]
         if run_git(root, "rev-parse", f"HEAD:{skill.relative_path}") != skill.tree_oid:
             raise FleetConfigError(f"source {source_id} Skill tree is not pinned")
     for repo_id, binding in host.repo_bindings.items():
@@ -176,14 +180,19 @@ def accept_current_fleet_revision(
             for repo_id, binding in host.repo_bindings.items()
         },
         source_revisions={
-            alias: resolved.sources[resolved.alias_owners[alias]].revision
+            alias: resolved.sources[resolved.resolved_skill(alias).source_id].revision
             for alias in sorted(desired_aliases)
         },
         source_tree_oids={
-            alias: resolved.sources[resolved.alias_owners[alias]].skills[
-                alias
-            ].tree_oid
+            alias: resolved.resolved_skill(alias).tree_oid
             for alias in sorted(desired_aliases)
+        },
+        projected_source_digests={
+            alias: tree_digest(
+                Path(rendered_profile["sources"][alias])
+            )
+            for alias in sorted(desired_aliases)
+            if resolved.resolved_skill(alias).requires_projection
         },
     )
 

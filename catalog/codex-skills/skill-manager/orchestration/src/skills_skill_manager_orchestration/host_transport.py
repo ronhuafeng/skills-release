@@ -7,12 +7,14 @@ import subprocess
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, Protocol
 
 import tomllib
 
 from .fleet_domain import (
     FLEET_SCHEMA_VERSION,
+    HOST_AUDIT_SCHEMA_VERSION,
     FleetConfigError,
     FleetManifest,
     HostTarget,
@@ -20,7 +22,7 @@ from .fleet_domain import (
     logical_id,
 )
 from .fleet_protocol import HostAuditRequest, HostAuditResult
-from .fleet_render import render_manifest_host
+from .fleet_render import host_skill_policies, render_manifest_host
 from .host_runtime import HOST_PROTOCOL_VERSION
 from .source_remote import inspect_source_revision
 
@@ -141,7 +143,7 @@ def incomplete_host_result(
         for repo_id, repo in spec.repos.items()
     }
     return {
-        "schema_version": FLEET_SCHEMA_VERSION,
+        "schema_version": HOST_AUDIT_SCHEMA_VERSION,
         "host_id": spec.host_id,
         "transport": spec.transport,
         "endpoint": spec.endpoint,
@@ -293,6 +295,10 @@ def fleet_audit(
         "schema_version": FLEET_SCHEMA_VERSION,
         "status": status,
         "manifest_digest": manifest.digest,
+        "skill_policies": {
+            host_id: host_skill_policies(manifest, host_id)
+            for host_id in selected
+        },
         "hosts": results,
     }
 
@@ -322,6 +328,7 @@ def resolve_manifest_catalogs(
                 binding.path,
                 source.origin,
                 source.revision,
+                binding.discovery_path,
             )
             continue
         response = transport_factory(host).request(

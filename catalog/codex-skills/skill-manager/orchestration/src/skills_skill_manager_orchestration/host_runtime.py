@@ -5,13 +5,13 @@ import platform
 from typing import Any
 
 from .fleet_audit import audit_host
-from .fleet_domain import FLEET_SCHEMA_VERSION, FleetConfigError
+from .fleet_domain import HOST_AUDIT_SCHEMA_VERSION, FleetConfigError
 from .fleet_protocol import HostAuditRequest
 from .source_remote import inspect_source_revision
 
 
 HOST_PROTOCOL_VERSION = 6
-RUNTIME_VERSION = "0.12.0"
+RUNTIME_VERSION = "0.13.0"
 
 
 def runtime_identity() -> dict[str, Any]:
@@ -22,7 +22,7 @@ def runtime_identity() -> dict[str, Any]:
     return {
         "artifact_name": "skill-manager-runtime",
         "artifact_version": RUNTIME_VERSION,
-        "fleet_protocol_version": FLEET_SCHEMA_VERSION,
+        "fleet_protocol_version": HOST_AUDIT_SCHEMA_VERSION,
         "host_protocol_version": HOST_PROTOCOL_VERSION,
         "identity_version": 1,
         "source_revision": source_revision,

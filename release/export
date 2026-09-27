@@ -11,7 +11,6 @@ usage() {
 source_revision=$1
 destination=$2
 repository=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-manifest="$repository/release/public-files.txt"
 
 case "$destination" in
     /*) ;;
@@ -26,6 +25,7 @@ commit=$(git rev-parse --verify "$source_revision^{commit}") || {
     echo "source revision is not a commit: $source_revision" >&2
     exit 2
 }
+manifest=$(git show "$commit:release/public-files.txt")
 
 [ ! -e "$destination" ] || {
     echo "release output already exists: $destination" >&2
@@ -62,7 +62,14 @@ while IFS= read -r path || [ -n "$path" ]; do
         exit 2
     }
     set -- "$@" "$path"
-done < "$manifest"
+done <<EOF
+$manifest
+EOF
+
+[ "$#" -gt 1 ] || {
+    echo "public allowlist is empty: $commit" >&2
+    exit 2
+}
 
 git archive --format=tar "$@" | tar -xf - -C "$stage"
 

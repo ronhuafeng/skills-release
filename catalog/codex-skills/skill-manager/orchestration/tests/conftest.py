@@ -106,7 +106,7 @@ def remote_fleet_protocol(
     manifest = tmp_path / "fleet.toml"
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = ["demo"]

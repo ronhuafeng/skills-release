@@ -5,7 +5,7 @@ import json
 import posixpath
 import re
 import uuid
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import urlparse
@@ -13,7 +13,9 @@ from urllib.parse import urlparse
 import tomllib
 from skills_profile_toml import validate_skill_name
 
-FLEET_SCHEMA_VERSION = 4
+FLEET_SCHEMA_VERSION = 5
+HOST_AUDIT_SCHEMA_VERSION = 4
+IMPLICIT_INVOCATION_MODES = {"default", "allow", "deny"}
 ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 GIT_OBJECT_ID_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 SHA256_DIGEST_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -75,6 +77,12 @@ def string_list(value: object, label: str) -> list[str]:
     if len(result) != len(set(result)):
         raise FleetConfigError(f"{label} must not contain duplicates")
     return result
+
+
+def implicit_invocation_mode(value: object, label: str) -> str:
+    if type(value) is not str or value not in IMPLICIT_INVOCATION_MODES:
+        raise FleetConfigError(f"{label} must be default, allow, or deny")
+    return value
 
 
 def absolute_path(value: object, label: str) -> str:
@@ -163,6 +171,7 @@ class SourceSpec:
     source_id: str
     origin: str
     revision: str
+    default_implicit_invocation: str
     skills: dict[str, SourceSkill]
 
     @classmethod
@@ -172,7 +181,7 @@ class SourceSpec:
             raise FleetConfigError(f"source {source_id} must be a TOML table")
         reject_unknown_keys(
             raw,
-            {"kind", "origin", "revision"},
+            {"kind", "origin", "revision", "defaults"},
             f"source {source_id}",
         )
         if raw.get("kind") != "git":
@@ -184,10 +193,20 @@ class SourceSpec:
         revision = str(raw.get("revision", ""))
         if not GIT_OBJECT_ID_PATTERN.fullmatch(revision):
             raise FleetConfigError(f"source {source_id} revision must be a full commit")
+        defaults = require_table(raw, "defaults")
+        reject_unknown_keys(
+            defaults,
+            {"implicit_invocation"},
+            f"source {source_id} defaults",
+        )
         return cls(
             source_id=source_id,
             origin=origin,
             revision=revision,
+            default_implicit_invocation=implicit_invocation_mode(
+                defaults.get("implicit_invocation", "default"),
+                f"source {source_id} defaults implicit_invocation",
+            ),
             skills={},
         )
 
@@ -195,7 +214,11 @@ class SourceSpec:
     def from_wire(cls, raw_source_id: object, raw: object) -> SourceSpec:
         if not isinstance(raw, dict):
             raise FleetConfigError("host audit source must be an object")
-        reject_unknown_keys(raw, {"kind", "origin", "revision", "skills"}, "host audit source")
+        reject_unknown_keys(
+            raw,
+            {"kind", "origin", "revision", "skills"},
+            "host audit source",
+        )
         source = cls.from_raw(
             raw_source_id,
             {key: raw[key] for key in ("kind", "origin", "revision") if key in raw},
@@ -213,15 +236,92 @@ class SourceSpec:
             "kind": "git",
             "origin": self.origin,
             "revision": self.revision,
+            "defaults": {
+                "implicit_invocation": self.default_implicit_invocation,
+            },
         }
 
     def as_wire_dict(self) -> dict[str, Any]:
         return {
-            **self.as_dict(),
+            "kind": "git",
+            "origin": self.origin,
+            "revision": self.revision,
             "skills": {
                 alias: data.as_dict() for alias, data in sorted(self.skills.items())
             },
         }
+
+
+@dataclass(frozen=True)
+class SkillSpec:
+    alias: str
+    source_id: str
+    source_name: str
+    implicit_invocation: str
+
+    @classmethod
+    def from_raw(
+        cls,
+        raw_alias: object,
+        raw: object,
+        *,
+        source_ids: set[str],
+    ) -> SkillSpec:
+        alias = validate_skill_name(str(raw_alias), "skill alias")
+        if not isinstance(raw, dict):
+            raise FleetConfigError(f"skill {alias} must be a TOML table")
+        reject_unknown_keys(
+            raw,
+            {"source", "source_name", "implicit_invocation"},
+            f"skill {alias}",
+        )
+        source_id = logical_id(raw.get("source", ""), f"skill {alias} source")
+        if source_id not in source_ids:
+            raise FleetConfigError(
+                f"skill {alias} refers to unknown source {source_id}"
+            )
+        source_name = validate_skill_name(
+            str(raw.get("source_name", alias)),
+            f"skill {alias} source_name",
+        )
+        return cls(
+            alias=alias,
+            source_id=source_id,
+            source_name=source_name,
+            implicit_invocation=implicit_invocation_mode(
+                raw.get("implicit_invocation", "default"),
+                f"skill {alias} implicit_invocation",
+            ),
+        )
+
+    def as_dict(self) -> dict[str, str]:
+        return {
+            "source": self.source_id,
+            "source_name": self.source_name,
+            "implicit_invocation": self.implicit_invocation,
+        }
+
+
+@dataclass(frozen=True)
+class ResolvedSkill:
+    alias: str
+    source_id: str
+    source_name: str
+    relative_path: str
+    tree_oid: str
+    implicit_invocation: str
+
+    @property
+    def requires_projection(self) -> bool:
+        return self.alias != self.source_name or self.implicit_invocation != "default"
+
+    def as_wire_dict(self) -> dict[str, str]:
+        return {
+            "source": self.source_id,
+            "source_name": self.source_name,
+            "implicit_invocation": self.implicit_invocation,
+        }
+
 
 def _toml_quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
@@ -287,18 +387,6 @@ class HostSourceBinding:
         if self.fetch_url is not None:
             result["fetch_url"] = self.fetch_url
         return result
-
-
-def index_source_skills(sources: dict[str, SourceSpec]) -> dict[str, str]:
-    owners: dict[str, str] = {}
-    for source_id, source in sources.items():
-        for alias in source.skills:
-            if alias in owners:
-                raise FleetConfigError(
-                    f"source alias is declared more than once: {alias}"
-                )
-            owners[alias] = source_id
-    return owners
 
 
 @dataclass(frozen=True)
@@ -432,11 +520,7 @@ class HostTarget:
         }
         repo_paths = [binding.path for binding in repo_bindings.values()]
         if len(set(repo_paths)) != len(repo_paths):
-            duplicate = next(
-                path
-                for path in repo_paths
-                if repo_paths.count(path) > 1
-            )
+            duplicate = next(path for path in repo_paths if repo_paths.count(path) > 1)
             raise FleetConfigError(
                 f"host repo bindings must use unique paths: {duplicate}"
             )
@@ -563,12 +647,66 @@ class HostBinding(HostTarget):
         return result
 
 
+def _resolve_skills(
+    sources: dict[str, SourceSpec],
+    configured: dict[str, SkillSpec],
+) -> dict[str, ResolvedSkill]:
+    occurrences: dict[str, list[tuple[str, SourceSkill]]] = {}
+    for source_id, source in sorted(sources.items()):
+        for source_name, source_skill in sorted(source.skills.items()):
+            occurrences.setdefault(source_name, []).append((source_id, source_skill))
+
+    resolved: dict[str, ResolvedSkill] = {}
+    for source_name, matches in sorted(occurrences.items()):
+        if len(matches) != 1 or source_name in configured:
+            continue
+        source_id, source_skill = matches[0]
+        resolved[source_name] = ResolvedSkill(
+            alias=source_name,
+            source_id=source_id,
+            source_name=source_name,
+            relative_path=source_skill.relative_path,
+            tree_oid=source_skill.tree_oid,
+            implicit_invocation=sources[source_id].default_implicit_invocation,
+        )
+
+    for alias, skill in sorted(configured.items()):
+        source = sources[skill.source_id]
+        try:
+            source_skill = source.skills[skill.source_name]
+        except KeyError as exc:
+            raise FleetConfigError(
+                f"skill {alias} refers to missing source skill "
+                f"{skill.source_id}:{skill.source_name}"
+            ) from exc
+        mode = (
+            skill.implicit_invocation
+            if skill.implicit_invocation != "default"
+            else source.default_implicit_invocation
+        )
+        resolved[alias] = ResolvedSkill(
+            alias=alias,
+            source_id=skill.source_id,
+            source_name=skill.source_name,
+            relative_path=source_skill.relative_path,
+            tree_oid=source_skill.tree_oid,
+            implicit_invocation=mode,
+        )
+    return resolved
+
+
 @dataclass(frozen=True)
 class FleetManifest:
     global_include: tuple[str, ...]
     sources: dict[str, SourceSpec]
     repos: dict[str, RepoSpec]
+    skills: dict[str, SkillSpec]
     hosts: dict[str, HostBinding]
+    resolved_skills: dict[str, ResolvedSkill] = field(
+        default_factory=dict,
+        compare=False,
+        repr=False,
+    )
 
     @classmethod
     def load(cls, path: Path | str) -> FleetManifest:
@@ -584,7 +722,7 @@ class FleetManifest:
             raise FleetConfigError("fleet manifest must be a TOML table")
         reject_unknown_keys(
             raw,
-            {"schema_version", "global", "sources", "repos", "hosts"},
+            {"schema_version", "global", "sources", "skills", "repos", "hosts"},
             "fleet manifest",
         )
         if raw.get("schema_version") != FLEET_SCHEMA_VERSION:
@@ -602,6 +740,14 @@ class FleetManifest:
                 source,
             )
             for source_id, source in require_table(raw, "sources").items()
+        }
+        skills = {
+            validate_skill_name(str(alias), "skill alias"): SkillSpec.from_raw(
+                alias,
+                skill,
+                source_ids=set(sources),
+            )
+            for alias, skill in require_table(raw, "skills").items()
         }
         repos = {
             logical_id(repo_id, "repo_id"): RepoSpec.from_raw(repo_id, repo)
@@ -621,6 +767,7 @@ class FleetManifest:
             global_include=baseline,
             sources=sources,
             repos=repos,
+            skills=skills,
             hosts=hosts,
         )
         enrollment_ids = [host.enrollment_id for host in hosts.values()]
@@ -629,6 +776,16 @@ class FleetManifest:
         selectors = [(host.hostname, host.username) for host in hosts.values()]
         if len(selectors) != len(set(selectors)):
             raise FleetConfigError("hosts contain ambiguous hostname and username")
+        for source_id in sources:
+            discovery_paths = {
+                host.source_bindings[source_id].discovery_path
+                for host in hosts.values()
+                if source_id in host.source_bindings
+            }
+            if len(discovery_paths) > 1:
+                raise FleetConfigError(
+                    f"source {source_id} discovery_path must agree across hosts"
+                )
         return manifest
 
     def with_catalogs(
@@ -636,16 +793,23 @@ class FleetManifest:
         catalogs: dict[str, dict[str, SourceSkill]],
     ) -> FleetManifest:
         if set(catalogs) != set(self.sources):
-            raise FleetConfigError("source catalogs must exactly match declared sources")
+            raise FleetConfigError(
+                "source catalogs must exactly match declared sources"
+            )
         sources = {
             source_id: replace(source, skills=dict(sorted(catalogs[source_id].items())))
             for source_id, source in self.sources.items()
         }
-        manifest = replace(self, sources=sources)
-        manifest._validate_host_desired_state(index_source_skills(sources))
+        manifest = replace(
+            self,
+            sources=sources,
+            resolved_skills=_resolve_skills(sources, self.skills),
+        )
+        manifest._validate_host_desired_state()
         return manifest
 
-    def _validate_host_desired_state(self, alias_owners: dict[str, str]) -> None:
+    def _validate_host_desired_state(self) -> None:
+        alias_owners = self.alias_owners
         for host in self.hosts.values():
             desired_aliases = set(host.desired_global(self.global_include))
             for binding in host.repo_bindings.values():
@@ -669,11 +833,16 @@ class FleetManifest:
 
     @property
     def alias_owners(self) -> dict[str, str]:
-        return {
-            alias: source_id
-            for source_id, source in self.sources.items()
-            for alias in source.skills
-        }
+        return {alias: skill.source_id for alias, skill in self.resolved_skills.items()}
+
+    def resolved_skill(self, alias: str) -> ResolvedSkill:
+        normalized = validate_skill_name(alias, "skill alias")
+        try:
+            return self.resolved_skills[normalized]
+        except KeyError as exc:
+            raise FleetConfigError(
+                f"unknown resolved skill alias: {normalized}"
+            ) from exc
 
     def host(self, host_id: str) -> HostBinding:
         normalized = logical_id(host_id, "host_id")
@@ -689,6 +858,9 @@ class FleetManifest:
             "sources": {
                 source_id: source.as_dict()
                 for source_id, source in sorted(self.sources.items())
+            },
+            "skills": {
+                alias: skill.as_dict() for alias, skill in sorted(self.skills.items())
             },
             "repos": {
                 repo_id: repo.as_dict() for repo_id, repo in sorted(self.repos.items())
@@ -715,6 +887,22 @@ class FleetManifest:
                     'kind = "git"',
                     f"origin = {_toml_quote(source.origin)}",
                     f"revision = {_toml_quote(source.revision)}",
+                    "",
+                    f"[sources.{_toml_quote(source_id)}.defaults]",
+                    (
+                        "implicit_invocation = "
+                        f"{_toml_quote(source.default_implicit_invocation)}"
+                    ),
+                    "",
+                ]
+            )
+        for alias, skill in sorted(self.skills.items()):
+            lines.extend(
+                [
+                    f"[skills.{_toml_quote(alias)}]",
+                    f"source = {_toml_quote(skill.source_id)}",
+                    f"source_name = {_toml_quote(skill.source_name)}",
+                    (f"implicit_invocation = {_toml_quote(skill.implicit_invocation)}"),
                     "",
                 ]
             )
@@ -761,9 +949,7 @@ class FleetManifest:
                         f"discovery_path = {_toml_quote(source_binding.discovery_path)}"
                     )
                 if source_binding.fetch_url is not None:
-                    lines.append(
-                        f"fetch_url = {_toml_quote(source_binding.fetch_url)}"
-                    )
+                    lines.append(f"fetch_url = {_toml_quote(source_binding.fetch_url)}")
                 lines.append("")
             for repo_id, repo_binding in sorted(host.repo_bindings.items()):
                 lines.extend(
@@ -781,6 +967,7 @@ class FleetManifest:
 
 __all__ = [
     "FLEET_SCHEMA_VERSION",
+    "HOST_AUDIT_SCHEMA_VERSION",
     "GIT_OBJECT_ID_PATTERN",
     "SHA256_DIGEST_PATTERN",
     "canonical_enrollment_id",
@@ -789,14 +976,17 @@ __all__ = [
     "HostBinding",
     "HostSourceBinding",
     "HostTarget",
+    "IMPLICIT_INVOCATION_MODES",
     "RepoBinding",
     "RepoSpec",
+    "ResolvedSkill",
+    "SkillSpec",
     "SourceSkill",
     "SourceSpec",
     "absolute_path",
     "canonical_digest",
     "canonical_git_identity",
-    "index_source_skills",
+    "implicit_invocation_mode",
     "logical_id",
     "reject_unknown_keys",
     "relative_path",

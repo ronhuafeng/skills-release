@@ -121,7 +121,7 @@ global_remove = []
     )
     manifest.write_text(
         f"""
-schema_version = 4
+schema_version = 5
 
 [global]
 include = []

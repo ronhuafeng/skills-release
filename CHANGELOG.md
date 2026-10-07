@@ -5,6 +5,10 @@ versions.
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-08
+
+- Package the engineering catalog as the `ronhuafeng-engineering` source plugin
+  without copying or moving Skills.
 - Develop and accept contributions directly in the public repository.
 - Build standalone Skill runtimes through one source installation command.
 - Verify installed runtimes on Linux and macOS; remove private snapshot export.

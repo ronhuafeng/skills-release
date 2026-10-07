@@ -1,0 +1,15 @@
+{
+  "name": "ronhuafeng-skills",
+  "owner": {
+    "name": "ronhuafeng"
+  },
+  "description": "Engineering skills from the ronhuafeng skills-release repository.",
+  "plugins": [
+    {
+      "name": "ronhuafeng-engineering",
+      "source": "./",
+      "description": "Reusable engineering skills from the engineering catalog.",
+      "category": "Developer Tools"
+    }
+  ]
+}

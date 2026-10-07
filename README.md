@@ -55,6 +55,52 @@ npx skills@latest add ronhuafeng/skills-release \
 Use [`skill-manager`](catalog/codex-skills/skill-manager/) only when placement
 needs ownership, provenance, or multi-host reconciliation.
 
+### Engineering plugin
+
+The repository root is also the `ronhuafeng-engineering` plugin. Its
+[Codex manifest](.codex-plugin/plugin.json) and
+[Claude manifest](.claude-plugin/plugin.json) both expose only
+`catalog/engineering`. Keep their identity, version, and Skill path equal;
+the existing Skill directories remain the single content source. Individual
+Skill installation remains supported. The remote installation examples below
+require a published revision containing these manifests.
+
+For a Codex repo marketplace, reference this repository root as a Git plugin:
+
+```json
+{
+  "name": "ronhuafeng-engineering",
+  "source": {
+    "source": "url",
+    "url": "https://github.com/ronhuafeng/skills-release.git",
+    "ref": "main"
+  },
+  "policy": {
+    "installation": "AVAILABLE",
+    "authentication": "ON_INSTALL"
+  },
+  "category": "Developer Tools"
+}
+```
+
+For Claude Code, add the source marketplace and install the same plugin:
+
+```text
+/plugin marketplace add ronhuafeng/skills-release
+/plugin install ronhuafeng-engineering@ronhuafeng-skills
+```
+
+The consuming repository owns project enablement and may pin an accepted Git
+commit with `source.sha`. A Git reference is not an installed plugin: each host
+must install or refresh it through its client, then verify discovery in a new
+session. The plugin adds no MCP server, hook, or authentication requirement.
+It does not include `skill-manager` or `session-management`.
+
+Plugin installation does not install system tools or external Skills.
+`implement-tickets` still needs Matt's `implement`, `tdd`, and `code-review`;
+`model-with-tla` still needs uv and Java 11+. Existing Skill invocation policies
+and bundled resources are unchanged.
+
 ### Runtime prerequisites
 
 The installer copies Skill instructions and resources. It does not install
@@ -89,12 +135,17 @@ targets. Other platforms are not claimed as verified.
 ## Invocation
 
 A manual-only Skill runs only when the user names it. It sets
-`disable-model-invocation: true` for compatible clients and
 `policy.allow_implicit_invocation: false` in `agents/openai.yaml` for Codex.
+Explicit `$skill` invocation remains available. Claude Code uses
+`disable-model-invocation: true` in `SKILL.md`; `user-invocable: true` keeps
+its manual command visible. Claude fields do not replace the Codex policy.
 
-A model-reachable Skill omits those restrictions. Its description states the
-conditions in which the model should select it. `agents/openai.yaml` also owns
-Codex display metadata.
+A model-reachable Skill sets the Codex policy to `true` or omits it (the default)
+and omits the Claude model-invocation restriction or sets it to `false`.
+Its description states when the model should select it. Plugin packaging
+preserves each Skill's policy; marketplace installation and plugin enablement
+do not define implicit invocation. `agents/openai.yaml` also owns Codex display
+metadata. See the [Codex Skill metadata contract](https://developers.openai.com/codex/skills#optional-metadata).
 
 ## Validate changes
 

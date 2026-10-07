@@ -1,0 +1,11 @@
+{
+  "name": "ronhuafeng-engineering",
+  "version": "0.1.0",
+  "description": "Engineering skills for planning, implementation, context reduction, live evidence review, UI design, diagrams, and stateful-system verification.",
+  "author": {
+    "name": "ronhuafeng"
+  },
+  "repository": "https://github.com/ronhuafeng/skills-release",
+  "license": "Apache-2.0",
+  "skills": "./catalog/engineering"
+}

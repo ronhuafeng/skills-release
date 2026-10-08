@@ -23,6 +23,7 @@ proves.
 | Go primitive | In the changed module: `GOWORK=off go test ./... -count=1` |
 | Plugin distribution contracts | Separate `verify` job **Plugin distribution contracts**. From the repository root: `uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py` |
 | Plugin activation evaluation | Separate `verify` job **Plugin activation evaluation**. Report live activation as unavailable when no supported surface result is supplied. Package success is not activation success. |
+| Plugin release ladder | Separate `verify` job **Plugin release ladder**. From the repository root: `uv run --locked --project harnesses pytest release/plugin_build/tests/test_release.py` |
 | Session-management orchestration | From `catalog/codex-sessions/session-management/orchestration-go`: `GOWORK=off go test ./... -count=1`, `go vet ./...`, and build the command when executable wiring changes |
 | Skill metadata or routing | The closest metadata validator plus a real Codex discovery check when invocation behavior is claimed |
 | Host, registry, snapshot, session, or app mutation | Relevant Contract/Integration gates plus a scoped Live proof and post-mutation state readback |

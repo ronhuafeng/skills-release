@@ -1,0 +1,19 @@
+{
+  "name": "ronhuafeng-skills",
+  "interface": {
+    "displayName": "Engineering"
+  },
+  "plugins": [
+    {
+      "name": "ronhuafeng-engineering",
+      "source": {
+        "source": "local",
+        "path": "./dist/plugins/ronhuafeng-engineering"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

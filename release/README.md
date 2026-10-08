@@ -5,10 +5,11 @@ the current Skills available through the install command in the root README.
 There is no export, mirror, or private-source synchronization step.
 
 The Codex and Claude manifests expose the engineering catalog through the same
-source revision. Check their parity and validate the Claude entrypoints:
+source revision. Shared identity fields must match. Do not require the whole
+manifests to be byte-equal when client-specific fields diverge. Validate the
+Claude entrypoints separately:
 
 ```sh
-cmp .codex-plugin/plugin.json .claude-plugin/plugin.json
 claude plugin validate .claude-plugin/plugin.json --strict
 claude plugin validate .claude-plugin/marketplace.json --strict
 ```
@@ -42,13 +43,43 @@ The build checks shared identity fields against the Codex and Claude
 compatibility manifests. It does not require those whole files to equal the
 portable manifest. It does not publish the Plugin.
 
-`verify` keeps two separate jobs. **Plugin distribution contracts** proves the
+`verify` keeps separate jobs. **Plugin distribution contracts** proves the
 package structure only. **Plugin activation evaluation** checks the labelled
 golden prompts and reports live activation as unavailable when this repository
 has no supported Plugin surface. A green distribution job does not mean a
-Skill was selected.
+Skill was selected. **Plugin release ladder** reports the publication state.
+It does not publish the Plugin.
 
-For a versioned release:
+## Plugin publication states
+
+The Plugin version is the shared `version` in
+`release/plugins/engineering/source.json` and the two compatibility manifests.
+It is not the repository tag in `CHANGELOG.md`. A repository release is not a
+Plugin release.
+
+Answer these from evidence for one package. Do not infer a later state from an
+earlier one:
+
+| State | Evidence |
+|-------|----------|
+| `source_merged` | The canonical commit is on `main`. No package is required. |
+| `package_built` | The ZIP and provenance name that commit and the Plugin version. |
+| `package_verified` | Distribution contracts passed and live activation passed for that ZIP. Unavailable activation does not verify the package. |
+| `bounded_distribution` | The verified package is available through a workspace or `.agents/plugins/marketplace.json`. The marketplace path can be answered earlier. That path alone is not this state, and it is not public. |
+| `public_approved` | An operator reviewed the package, behavior evidence, `release/plugins/engineering/release-notes.md`, and `release/plugins/engineering/activation/golden-prompts.json`. |
+| `public_published` | The operator published that approved ZIP in the universal Plugins Directory. |
+
+The marketplace points at the built package. It does not copy
+`catalog/engineering/`. The Claude marketplace remains a separate client
+surface. Do not store publisher credentials in Git, GitHub, or the ZIP.
+
+A versioned Plugin release attaches that exact ZIP to the release record.
+Record the source commit, Plugin version, ZIP sha256, surface, and state.
+A new Skill or metadata change needs a new version and a new ZIP. Do not
+replace a published ZIP. Roll forward with a new version. Do not publish to
+the universal directory on merge.
+
+For a versioned repository release:
 
 1. Update `CHANGELOG.md` with user-visible changes and merge the change.
 2. Require `verify` to pass for the exact public commit being released.

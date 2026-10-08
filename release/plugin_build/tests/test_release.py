@@ -83,6 +83,16 @@ def test_workspace_surface_stays_visible_when_activation_is_unavailable() -> Non
     assert report.plugin_release is False
 
 
+def test_unmerged_source_does_not_hide_a_built_package() -> None:
+    report = status(source_merged=False)
+
+    assert report.state == "package_built"
+    assert report.source_merged is False
+    assert report.zip_sha256 == "zip-a"
+    assert report.package_version == "0.1.0"
+    assert report.plugin_release is False
+
+
 def test_workspace_distribution_is_not_public() -> None:
     report = status(
         distribution_passed=True,

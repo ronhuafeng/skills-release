@@ -25,6 +25,7 @@ class ReleaseRecord:
 @dataclass(frozen=True)
 class PublicationStatus:
     state: str
+    source_merged: bool
     plugin_release: bool
     package_verified: bool
     source_commit: str
@@ -63,11 +64,10 @@ def publication_status(
         if same_version and changed_artifact:
             raise ReleaseError("immutable_artifact", "a published version cannot be replaced")
     verified = distribution_passed and activation_status == "passed"
-    if not source_merged:
-        return _status("none", False, source_commit, declared_version, repository_release, None, bounded_surface)
     if built_version is None:
         return _status(
-            "source_merged",
+            "source_merged" if source_merged else "",
+            source_merged,
             False,
             source_commit,
             declared_version,
@@ -85,6 +85,7 @@ def publication_status(
             _require_record(publication, built_version, built_commit, built_zip_sha256, "public")
             return _status(
                 "public_published",
+                source_merged,
                 True,
                 source_commit,
                 built_version,
@@ -94,6 +95,7 @@ def publication_status(
             )
         return _status(
             "public_approved",
+            source_merged,
             True,
             source_commit,
             built_version,
@@ -104,6 +106,7 @@ def publication_status(
     if bounded_surface and verified:
         return _status(
             "bounded_distribution",
+            source_merged,
             True,
             source_commit,
             built_version,
@@ -114,6 +117,7 @@ def publication_status(
     state = "package_verified" if verified else "package_built"
     return _status(
         state,
+        source_merged,
         verified,
         source_commit,
         built_version,
@@ -175,6 +179,7 @@ def read_openai_marketplace(repository: Path) -> dict:
 def main() -> int:
     report = current_publication(Path.cwd())
     print(f"state={report.state}")
+    print(f"source_merged={str(report.source_merged).lower()}")
     print(f"plugin_release={str(report.plugin_release).lower()}")
     print(f"package_verified={str(report.package_verified).lower()}")
     print(f"source_commit={report.source_commit}")
@@ -243,6 +248,7 @@ def _require_record(
 
 def _status(
     state: str,
+    source_merged: bool,
     package_verified: bool,
     source_commit: str,
     package_version: str | None,
@@ -252,6 +258,7 @@ def _status(
 ) -> PublicationStatus:
     return PublicationStatus(
         state=state,
+        source_merged=source_merged,
         plugin_release=state == "public_published",
         package_verified=package_verified,
         source_commit=source_commit,

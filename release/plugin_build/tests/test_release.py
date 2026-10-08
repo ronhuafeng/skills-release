@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -8,9 +9,19 @@ import pytest
 from plugin_build.release_status import (
     ReleaseError,
     ReleaseRecord,
+    current_publication,
     publication_status,
     read_openai_marketplace,
 )
+
+
+def subprocess_commit(repo: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+    )
+    return result.stdout.decode().strip()
 
 
 def record(version: str = "0.1.0", commit: str = "a" * 40, digest: str = "zip-a", surface: str = "public") -> ReleaseRecord:
@@ -110,3 +121,18 @@ def test_repository_marketplace_points_at_the_built_package_without_skill_copies
     assert not (repo / ".agents" / "plugins" / "skills").exists()
     assert claude["plugins"][0]["source"] == "./"
     assert claude["plugins"][0]["source"] != marketplace["plugins"][0]["source"]["path"]
+
+
+def test_repository_publication_answers_identity_and_surface() -> None:
+    repo = Path(__file__).resolve().parents[3]
+    report = current_publication(repo)
+    commit = subprocess_commit(repo)
+
+    assert report.source_commit == commit
+    assert report.package_version == "0.1.0"
+    assert report.repository_release == "0.2.0"
+    assert report.package_version != report.repository_release
+    assert report.surface == "./dist/plugins/ronhuafeng-engineering"
+    assert report.plugin_release is False
+    assert report.state != "public_published"
+    assert report.state != "public_approved"

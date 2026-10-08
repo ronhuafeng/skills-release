@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,6 +26,7 @@ class ReleaseRecord:
 class PublicationStatus:
     state: str
     plugin_release: bool
+    package_verified: bool
     source_commit: str
     package_version: str | None
     repository_release: str
@@ -35,6 +39,7 @@ def publication_status(
     source_merged: bool,
     source_commit: str,
     repository_release: str,
+    declared_version: str | None = None,
     built_version: str | None,
     built_commit: str | None,
     built_zip_sha256: str | None,
@@ -57,39 +62,85 @@ def publication_status(
         )
         if same_version and changed_artifact:
             raise ReleaseError("immutable_artifact", "a published version cannot be replaced")
+    verified = distribution_passed and activation_status == "passed"
     if not source_merged:
-        return _status("none", source_commit, None, repository_release, None, None)
+        return _status("none", False, source_commit, declared_version, repository_release, None, bounded_surface)
     if built_version is None:
-        return _status("source_merged", source_commit, None, repository_release, None, None)
+        return _status(
+            "source_merged",
+            False,
+            source_commit,
+            declared_version,
+            repository_release,
+            None,
+            bounded_surface,
+        )
     if built_commit != source_commit:
         raise ReleaseError("identity_mismatch", "package commit does not match the source commit")
     if bounded_surface == "public":
         raise ReleaseError("surface_mismatch", "workspace publication is not public")
-    if not distribution_passed or activation_status != "passed":
-        return _status("package_built", source_commit, built_version, repository_release, built_zip_sha256, None)
-    if not bounded_surface:
-        return _status("package_verified", source_commit, built_version, repository_release, built_zip_sha256, None)
-    if approval is None or not _notes_match(release_notes, built_version):
-        return _status(
-            "bounded_distribution",
-            source_commit,
-            built_version,
-            repository_release,
-            built_zip_sha256,
-            bounded_surface,
-        )
-    _require_record(approval, built_version, built_commit, built_zip_sha256, "directory-review")
-    if publication is None:
+    if approval is not None and _notes_match(release_notes, built_version) and verified:
+        _require_record(approval, built_version, built_commit, built_zip_sha256, "directory-review")
+        if publication is not None:
+            _require_record(publication, built_version, built_commit, built_zip_sha256, "public")
+            return _status(
+                "public_published",
+                True,
+                source_commit,
+                built_version,
+                repository_release,
+                built_zip_sha256,
+                "public",
+            )
         return _status(
             "public_approved",
+            True,
             source_commit,
             built_version,
             repository_release,
             built_zip_sha256,
             "directory-review",
         )
-    _require_record(publication, built_version, built_commit, built_zip_sha256, "public")
-    return _status("public_published", source_commit, built_version, repository_release, built_zip_sha256, "public")
+    if bounded_surface:
+        return _status(
+            "bounded_distribution",
+            verified,
+            source_commit,
+            built_version,
+            repository_release,
+            built_zip_sha256,
+            bounded_surface,
+        )
+    state = "package_verified" if verified else "package_built"
+    return _status(state, verified, source_commit, built_version, repository_release, built_zip_sha256, None)
+
+
+def current_publication(repository: Path) -> PublicationStatus:
+    repository = repository.resolve()
+    metadata = _read_json(repository / "release" / "plugins" / "engineering" / "source.json")
+    version = str(metadata["version"])
+    commit = _head(repository)
+    marketplace = read_openai_marketplace(repository)
+    configured_surface = str(marketplace["plugins"][0]["source"]["path"])
+    built_commit, built_version, digest = _built_package(repository, commit, version)
+    notes_path = repository / "release" / "plugins" / "engineering" / "release-notes.md"
+    notes = notes_path.read_text(encoding="utf-8") if notes_path.is_file() else None
+    return publication_status(
+        source_merged=_source_merged(repository, commit),
+        source_commit=commit,
+        repository_release=_repository_release(repository),
+        declared_version=version,
+        built_version=built_version,
+        built_commit=built_commit,
+        built_zip_sha256=digest,
+        distribution_passed=False,
+        activation_status="unavailable",
+        bounded_surface=configured_surface,
+        release_notes=notes,
+        approval=None,
+        publication=None,
+        prior_publication=None,
+    )
 
 
 def read_openai_marketplace(repository: Path) -> dict:
@@ -111,6 +162,55 @@ def read_openai_marketplace(repository: Path) -> dict:
     if not plugin_path.startswith("./dist/plugins/") or "catalog/engineering" in plugin_path:
         raise ReleaseError("surface_mismatch", "OpenAI marketplace must point at the built package")
     return data
+
+
+def main() -> int:
+    report = current_publication(Path.cwd())
+    print(f"state={report.state}")
+    print(f"plugin_release={str(report.plugin_release).lower()}")
+    print(f"package_verified={str(report.package_verified).lower()}")
+    print(f"source_commit={report.source_commit}")
+    print(f"package_version={report.package_version or ''}")
+    print(f"repository_release={report.repository_release}")
+    print(f"zip_sha256={report.zip_sha256 or ''}")
+    print(f"surface={report.surface or ''}")
+    return 0
+
+
+def _built_package(repository: Path, commit: str, version: str) -> tuple[str | None, str | None, str | None]:
+    metadata = _read_json(repository / "release" / "plugins" / "engineering" / "source.json")
+    name = str(metadata["name"])
+    root = repository / "dist" / "plugins" / name
+    provenance_path = root / "assets" / "provenance.json"
+    zip_path = repository / "dist" / "plugins" / f"{name}-{version}.zip"
+    if not provenance_path.is_file() or not zip_path.is_file():
+        return None, None, None
+    provenance = _read_json(provenance_path)
+    if provenance.get("source_commit") != commit or provenance.get("version") != version:
+        return None, None, None
+    digest = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+    return commit, version, digest
+
+
+def _repository_release(repository: Path) -> str:
+    changelog = repository / "CHANGELOG.md"
+    if not changelog.is_file():
+        return "unreleased"
+    for line in changelog.read_text(encoding="utf-8").splitlines():
+        if line.startswith("## ") and not line.startswith("## Unreleased"):
+            return line.removeprefix("## ").split(" ", 1)[0]
+    return "unreleased"
+
+
+def _source_merged(repository: Path, commit: str) -> bool:
+    if os.environ.get("GITHUB_REF") == "refs/heads/main":
+        return True
+    result = subprocess.run(
+        ["git", "-C", str(repository), "merge-base", "--is-ancestor", commit, "main"],
+        capture_output=True,
+        check=False,
+    )
+    return result.returncode == 0
 
 
 def _notes_match(release_notes: str | None, version: str) -> bool:
@@ -135,6 +235,7 @@ def _require_record(
 
 def _status(
     state: str,
+    package_verified: bool,
     source_commit: str,
     package_version: str | None,
     repository_release: str,
@@ -144,9 +245,30 @@ def _status(
     return PublicationStatus(
         state=state,
         plugin_release=state == "public_published",
+        package_verified=package_verified,
         source_commit=source_commit,
         package_version=package_version,
         repository_release=repository_release,
         zip_sha256=zip_sha256,
         surface=surface,
     )
+
+
+def _read_json(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ReleaseError("identity_mismatch", path.name)
+    return data
+
+
+def _head(repository: Path) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+    )
+    return result.stdout.decode().strip()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

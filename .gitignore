@@ -9,3 +9,4 @@ __pycache__/
 .tmp/
 codex_journal.md
 codex_journal.d/
+dist/

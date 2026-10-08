@@ -20,8 +20,27 @@ does not report implicit-invocation policy. Check that Claude's
 `disable-model-invocation` agrees with the Codex implicit-invocation policy;
 do not remove client-specific fields to pass
 a Codex-only frontmatter allowlist. A valid manifest alone does not prove
-complete discovery or invocation policy. Keep plugin content in the existing
-catalog rather than generating a second distribution tree.
+complete discovery or invocation policy. Keep canonical Skill content in the existing catalog. The portable
+engineering Plugin is a generated package under ignored `dist/`; it is not a
+second Skill source.
+
+
+## Portable engineering Plugin
+
+`release/plugins/engineering/source.json` is the package source metadata.
+`catalog/engineering/` remains the canonical Skill source. Build an ignored
+package for the current commit:
+
+```sh
+PYTHONPATH=release/plugin_build/src \
+  uv run --locked --project harnesses python -m plugin_build
+```
+
+The build writes `dist/plugins/ronhuafeng-engineering/` and
+`dist/plugins/ronhuafeng-engineering-<version>.zip`. Do not commit `dist/`.
+The build checks shared identity fields against the Codex and Claude
+compatibility manifests. It does not require those whole files to equal the
+portable manifest. It does not publish the Plugin.
 
 For a versioned release:
 

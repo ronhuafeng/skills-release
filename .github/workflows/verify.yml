@@ -30,6 +30,8 @@ jobs:
           catalog/codex-skills/skill-manager/orchestration/tests
       - run: uv run --locked pytest
         working-directory: catalog/engineering/model-with-tla/orchestration
+      - name: Test portable Plugin package build
+        run: uv run --locked --project harnesses pytest release/plugin_build/tests
 
   go:
     runs-on: ubuntu-latest

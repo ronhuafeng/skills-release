@@ -331,6 +331,140 @@ def test_zip_has_one_plugin_root_and_stays_within_limits(tmp_path: Path) -> None
     assert package.zip_path.stat().st_size < 100 * 1024 * 1024
 
 
+def recommit(repo: Path, message: str) -> str:
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", message)
+    return git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+
+
+def set_package_name(repo: Path, name: str) -> None:
+    for relative in (
+        "release/plugins/engineering/source.json",
+        ".codex-plugin/plugin.json",
+        ".claude-plugin/plugin.json",
+    ):
+        path = repo / relative
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["name"] = name
+        write_json(path, document)
+
+
+def set_interface(repo: Path, **fields: object) -> None:
+    path = repo / "release" / "plugins" / "engineering" / "source.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["openai"]["interface"].update(fields)
+    write_json(path, document)
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["bad.name", "bad_name", "Bad-name", "a--b", "a" * 65],
+)
+def test_plugin_name_must_satisfy_portable_and_openai_rules(tmp_path: Path, name: str) -> None:
+    repo, _commit = make_repo(tmp_path)
+    set_package_name(repo, name)
+    commit = recommit(repo, "rename plugin")
+
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, tmp_path / "out")
+
+    assert caught.value.code == "identity_mismatch"
+
+
+def test_plugin_name_accepts_sixty_four_lowercase_characters(tmp_path: Path) -> None:
+    name = "a" * 64
+    repo, _commit = make_repo(tmp_path)
+    set_package_name(repo, name)
+    commit = recommit(repo, "rename plugin")
+
+    package = build(repo, commit, tmp_path / "out")
+
+    assert package.name == name
+
+
+def test_display_name_uses_package_limit_not_submission_limit(tmp_path: Path) -> None:
+    accepted = tmp_path / "accepted"
+    repo, _commit = make_repo(accepted)
+    set_interface(repo, displayName="E" * 80)
+    commit = recommit(repo, "set display name")
+    package = build(repo, commit, accepted / "out")
+    manifest = json.loads((package.root / "plugin.json").read_text(encoding="utf-8"))
+    assert manifest["extensions"]["com.openai"]["interface"]["displayName"] == "E" * 80
+
+    rejected = tmp_path / "rejected"
+    repo, _commit = make_repo(rejected)
+    set_interface(repo, displayName="E" * 81)
+    commit = recommit(repo, "set long display name")
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, rejected / "out")
+    assert caught.value.code == "invalid_source"
+
+
+def test_unsafe_skill_name_is_not_omitted(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path, skills=("alpha",))
+    skill = repo / "catalog" / "engineering" / "bad_name"
+    skill.mkdir()
+    (skill / "SKILL.md").write_text("---\nname: bad_name\ndescription: Test.\n---\n", encoding="utf-8")
+    commit = recommit(repo, "add unsafe skill")
+
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, tmp_path / "out")
+
+    assert caught.value.code == "inventory_mismatch"
+    assert "bad_name" in str(caught.value)
+    assert not (tmp_path / "out").exists()
+
+
+def test_directory_without_skill_file_is_not_a_packaged_skill(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    notes = repo / "catalog" / "engineering" / "notes"
+    notes.mkdir()
+    (notes / "note.md").write_text("note\n", encoding="utf-8")
+    unsafe = repo / "catalog" / "engineering" / "NotASkill"
+    unsafe.mkdir()
+    (unsafe / "readme.md").write_text("readme\n", encoding="utf-8")
+    commit = recommit(repo, "add non-skill directories")
+
+    package = build(repo, commit, tmp_path / "out")
+
+    names = zip_names(package.zip_path)
+    assert [item.name for item in package.skills] == ["alpha", "beta"]
+    assert not any("notes/" in name or "NotASkill/" in name for name in names)
+
+
+def test_package_paths_reject_depth_whitespace_backslash_and_unicode_collision() -> None:
+    accepted = "/".join(["seg"] * 19 + ["SKILL.md"])
+    assert_unique_package_paths([accepted])
+
+    too_deep = "/".join(["seg"] * 20 + ["SKILL.md"])
+    with pytest.raises(PackageError) as depth:
+        assert_unique_package_paths([too_deep])
+    assert depth.value.code == "path_escape"
+
+    with pytest.raises(PackageError) as whitespace:
+        assert_unique_package_paths([" skills/alpha/SKILL.md"])
+    assert whitespace.value.code == "path_escape"
+
+    with pytest.raises(PackageError) as backslash:
+        assert_unique_package_paths(["skills\\alpha\\SKILL.md"])
+    assert backslash.value.code == "path_escape"
+
+    with pytest.raises(PackageError) as collision:
+        assert_unique_package_paths(["skills/caf\u00e9/SKILL.md", "skills/cafe\u0301/SKILL.md"])
+    assert collision.value.code == "duplicate_path"
+
+
+def test_skills_only_package_rejects_screenshots(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    set_interface(repo, screenshots=["./assets/shot.png"])
+    commit = recommit(repo, "add screenshots")
+
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, tmp_path / "out")
+
+    assert caught.value.code == "forbidden_content"
+
+
 def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> None:
     repo = Path(__file__).resolve().parents[3]
     clone = tmp_path / "clone"

@@ -4,6 +4,7 @@ import json
 import re
 import shutil
 import subprocess
+import unicodedata
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -68,16 +69,36 @@ ALLOWED_INTERFACE_KEYS = {
     "websiteURL",
 }
 INTERFACE_LIMITS = {
-    "developerName": 80,
-    "displayName": 30,
+    "developerName": 120,
+    "displayName": 80,
     "longDescription": 4000,
-    "shortDescription": 30,
+    "shortDescription": 240,
 }
+CATEGORIES = {
+    "Business & Operations",
+    "Communication",
+    "Creativity",
+    "Data & Analytics",
+    "Developer Tools",
+    "Education & Research",
+    "Entertainment",
+    "Finance",
+    "Healthcare",
+    "Other",
+    "Productivity",
+    "Security",
+    "Travel",
+}
+MAX_DESCRIPTION_LENGTH = 1024
+MAX_AUTHOR_NAME_LENGTH = 120
+MAX_PATH_SEGMENTS = 20
+MAX_URL_LENGTH = 2048
+
 MAX_COMPRESSED_BYTES = 100 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 5000
 MAX_ENTRY_BYTES = 100 * 1024 * 1024
-NAME_RE = re.compile(r"^(?!.*(?:--|\\.\\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
+NAME_RE = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -179,18 +200,21 @@ def build_portable_package(
 def assert_unique_package_paths(paths: Iterable[str]) -> None:
     seen: dict[str, str] = {}
     for path in paths:
-        normalized = path.replace("\\", "/")
-        parts = normalized.split("/")
+        if "\\" in path:
+            raise PackageError("path_escape", path)
+        parts = path.split("/")
         if (
-            not normalized
-            or normalized.startswith("/")
+            not path
+            or path != path.strip()
+            or path.startswith("/")
+            or len(parts) > MAX_PATH_SEGMENTS
             or any(part in {"", ".", ".."} for part in parts)
         ):
-            raise PackageError("path_escape", normalized or path)
-        key = normalized.casefold()
+            raise PackageError("path_escape", path)
+        key = unicodedata.normalize("NFC", path).casefold()
         if key in seen:
-            raise PackageError("duplicate_path", normalized)
-        seen[key] = normalized
+            raise PackageError("duplicate_path", path)
+        seen[key] = path
 
 
 def assert_archive_limits(
@@ -284,6 +308,8 @@ def _plan_files(
 def _canonical_skills(repository: Path) -> dict[str, list[tuple[str, str, str]]]:
     result = _git(repository, "ls-tree", "-r", "HEAD", CANONICAL_ROOT)
     skills: dict[str, list[tuple[str, str, str]]] = {}
+    unsafe: set[str] = set()
+    with_skill: set[str] = set()
     prefix = f"{CANONICAL_ROOT}/"
     for line in result.stdout.decode().splitlines():
         mode, kind, blob, path = _parse_ls_tree(line)
@@ -291,13 +317,24 @@ def _canonical_skills(repository: Path) -> dict[str, list[tuple[str, str, str]]]
             continue
         relative = path[len(prefix) :]
         name, separator, inner = relative.partition("/")
-        if not separator or not SKILL_NAME_RE.fullmatch(name):
+        if not separator:
+            continue
+        if inner == "SKILL.md":
+            with_skill.add(name)
+        if not SKILL_NAME_RE.fullmatch(name):
+            unsafe.add(name)
             continue
         skills.setdefault(name, []).append((mode, blob, inner))
+    unsafe_skills = sorted(unsafe & with_skill)
+    if unsafe_skills:
+        raise PackageError(
+            "inventory_mismatch",
+            "skill name is not package-safe: " + ", ".join(unsafe_skills),
+        )
     return {
         name: entries
         for name, entries in skills.items()
-        if any(inner == "SKILL.md" for _, _, inner in entries)
+        if name in with_skill
     }
 
 
@@ -365,14 +402,36 @@ def _validate_metadata_shape(metadata: dict) -> None:
         isinstance(item, str) and item.strip() for item in metadata["keywords"]
     ):
         raise PackageError("invalid_source", "keywords are invalid")
+    description = metadata["description"]
+    if (
+        not isinstance(description, str)
+        or not description.strip()
+        or len(description) > MAX_DESCRIPTION_LENGTH
+    ):
+        raise PackageError("invalid_source", "description is missing or too long")
+    author_name = metadata.get("author", {}).get("name") if isinstance(metadata.get("author"), dict) else None
+    if not isinstance(author_name, str) or not author_name.strip() or len(author_name) > MAX_AUTHOR_NAME_LENGTH:
+        raise PackageError("invalid_source", "author name is missing or too long")
     interface = metadata["openai"].get("interface")
     if not isinstance(interface, dict):
         raise PackageError("invalid_source", "OpenAI interface metadata is missing")
     unknown = set(metadata["openai"]) - ALLOWED_OPENAI_KEYS
     if unknown:
         raise PackageError("invalid_source", "unknown OpenAI metadata")
+    if "screenshots" in interface:
+        raise PackageError("forbidden_content", "skills-only package cannot include screenshots")
     if set(interface) - ALLOWED_INTERFACE_KEYS:
         raise PackageError("invalid_source", "unknown OpenAI interface field")
+    if interface.get("category") not in CATEGORIES:
+        raise PackageError("invalid_source", "category is not supported")
+    capabilities = interface.get("capabilities", [])
+    if not isinstance(capabilities, list) or len(capabilities) > 20:
+        raise PackageError("invalid_source", "capabilities are invalid")
+    if any(
+        not isinstance(item, str) or not item.strip() or "\n" in item or len(item) > 120
+        for item in capabilities
+    ):
+        raise PackageError("invalid_source", "capabilities are invalid")
     for field, limit in INTERFACE_LIMITS.items():
         value = interface.get(field, "")
         if not isinstance(value, str) or not value.strip() or len(value) > limit:
@@ -381,7 +440,7 @@ def _validate_metadata_shape(metadata: dict) -> None:
             raise PackageError("invalid_source", f"{field} must be one line")
     website = interface.get("websiteURL")
     if website is not None and (
-        not isinstance(website, str) or not website.startswith("https://") or len(website) > 1024
+        not isinstance(website, str) or not website.startswith("https://") or len(website) > MAX_URL_LENGTH
     ):
         raise PackageError("invalid_source", "websiteURL must be an HTTPS URL")
     for field in ("logo", "logoDark", "composerIcon", "composerIconDark"):
@@ -432,7 +491,7 @@ def _dotted(document: dict, field: str) -> object:
 
 
 def _require_name(name: object) -> None:
-    if not isinstance(name, str) or not NAME_RE.fullmatch(name):
+    if not isinstance(name, str) or len(name) > 64 or not NAME_RE.fullmatch(name):
         raise PackageError("identity_mismatch", "plugin name is not portable")
 
 

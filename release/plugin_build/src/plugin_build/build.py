@@ -486,19 +486,14 @@ def _require_default_prompts(value: object) -> None:
     prompts = [value] if isinstance(value, str) else value
     if not isinstance(prompts, list) or len(prompts) > MAX_DEFAULT_PROMPTS:
         raise PackageError("invalid_source", "default prompts are invalid")
-    keys: list[str] = []
     for prompt in prompts:
         if (
             not isinstance(prompt, str)
             or not prompt.strip()
             or "\n" in prompt
             or len(prompt) > MAX_DEFAULT_PROMPT_LENGTH
-            or "@" in prompt
         ):
             raise PackageError("invalid_source", "default prompts are invalid")
-        keys.append(unicodedata.normalize("NFC", " ".join(prompt.split())))
-    if len(set(keys)) != len(keys):
-        raise PackageError("invalid_source", "default prompts are invalid")
 
 
 def _contrast(color: str, background: str) -> float:

@@ -610,19 +610,10 @@ def test_default_prompts_use_package_rules(tmp_path: Path) -> None:
 
     mentioned = tmp_path / "mentioned"
     repo, _commit = make_repo(mentioned)
-    set_interface(repo, defaultPrompt=["Use @files"])
-    commit = recommit(repo, "set mention")
-    with pytest.raises(PackageError) as mention:
-        build(repo, commit, mentioned / "out")
-    assert mention.value.code == "invalid_source"
-
-    duplicated = tmp_path / "duplicated"
-    repo, _commit = make_repo(duplicated)
-    set_interface(repo, defaultPrompt=["Use alpha", "Use  alpha"])
-    commit = recommit(repo, "set duplicate prompts")
-    with pytest.raises(PackageError) as duplicate:
-        build(repo, commit, duplicated / "out")
-    assert duplicate.value.code == "invalid_source"
+    set_interface(repo, defaultPrompt=["Use @files", "Use  alpha"])
+    commit = recommit(repo, "set package prompts")
+    package = build(repo, commit, mentioned / "out")
+    assert interface_of(package)["defaultPrompt"] == ["Use @files", "Use  alpha"]
 
 
 def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> None:

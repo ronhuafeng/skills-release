@@ -297,6 +297,8 @@ def _plan_files(
         )
     for name in metadata["skills"]:
         for mode, blob, inner in skills[name]:
+            if _secret(inner):
+                raise PackageError("forbidden_content", f"{CANONICAL_ROOT}/{name}/{inner}")
             if _excluded(inner):
                 continue
             if _git_mode_is_unsafe(mode):
@@ -586,6 +588,12 @@ def _reject_destination(repository: Path, destination: Path) -> None:
     forbidden = [repository / "catalog", repository / "release", repository / ".git"]
     if any(destination == path or path in destination.parents for path in forbidden):
         raise PackageError("path_escape", "package destination must stay outside canonical source")
+
+
+def _secret(inner: str) -> bool:
+    secret_names = {".env", ".npmrc", "credentials.json", "id_rsa"}
+    parts = inner.split("/")
+    return any(part in secret_names or part.endswith(".pem") for part in parts)
 
 
 def _excluded(inner: str) -> bool:

@@ -616,6 +616,18 @@ def test_default_prompts_use_package_rules(tmp_path: Path) -> None:
     assert interface_of(package)["defaultPrompt"] == ["Use @files", "Use  alpha"]
 
 
+def test_secret_file_is_rejected(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path, skills=("alpha",))
+    secret = repo / "catalog" / "engineering" / "alpha" / ".env"
+    secret.write_text("TOKEN=secret\n", encoding="utf-8")
+    commit = recommit(repo, "add secret")
+
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, tmp_path / "out")
+
+    assert caught.value.code == "forbidden_content"
+
+
 def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> None:
     repo = Path(__file__).resolve().parents[3]
     clone = tmp_path / "clone"

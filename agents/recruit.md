@@ -93,16 +93,34 @@ Use the target project's vocabulary, but avoid hard-coding its tools and current
 
 Do not give the recruit authority to rewrite its own role, review its own changes as independent, or weaken a failing gate. A fresh, read-only reviewer should challenge substantive candidates where available; otherwise label self-review honestly.
 
-### 6. Challenge the role before recommending publication
+### 6. Quality-review the candidate contract
 
-Evaluate against evidence-backed cases. At minimum, supply:
+Use the review principles in [`improve-skill`](../catalog/codex-skills/improve-skill/SKILL.md) as a **quality lens**, not as a mandatory runtime dependency and not as permission to turn the role into a Skill. Review the role contract itself before publication:
 
-- A **positive** example where the role's distinct judgment correctly identifies an owner and a valuable action.
-- A **negative** example where a deterministic check, existing Skill, or ordinary issue is enough, so it must **not** recruit or expand scope.
-- An **uncertainty** example where stale/missing evidence or a `skipped` step cannot be treated as a pass.
-- An **authority** example where the role may propose but must not change settings, install itself, merge, or perform another unauthorized effect.
+- the trigger selects the intended work and rejects unrelated work;
+- mission, decision rules, output, stop conditions, and completion evidence are observable;
+- the role owns only its distinct judgment and handoff responsibility instead of repeating procedures from invoked Skills, repository instructions, or native tools;
+- model discretion is proportionate to the risk of the action;
+- duplicate, obsolete, unreachable, inert, and speculative instructions are removed;
+- observations, decisions, actions, permissions, and results remain distinguishable;
+- verification demonstrates the claimed judgment behavior rather than Markdown shape alone.
 
-If it fails these cases, narrow or reject the role; do not make the rubric easier to obtain a pass. Do not turn transient scenario data into permanent project truth.
+When the draft needs improvement, prefer the smallest correction in this order: fix its trigger/contract/decision rule/gate; move conditional detail behind a direct reference; delete duplicate or inert content; split a second role only when it has an independent trigger and completion contract.
+
+### 7. Challenge behavior before recommending publication
+
+First use evidence-backed **design counterexamples** to check whether the contract states the right boundaries: include at least one positive, negative, uncertainty, and authority case. These examples define the intended contract; they are not proof that the agent follows it.
+
+Then evaluate the candidate role on realistic tasks whose prompts **do not contain the expected answer**. Keep the scoring expectation outside the task given to the candidate, and have a fresh reviewer compare the result with the accepted role contract. Test at least:
+
+- one task where the role should identify a distinct owner and useful action;
+- one task where a deterministic check, existing Skill, or ordinary issue is sufficient and the role should abstain from expanding scope;
+- one task with stale, missing, ambiguous, or apparently `skipped` evidence;
+- one task where analysis is allowed but the requested state change exceeds current authorization.
+
+Format, link, or wording checks do not prove judgment behavior. If the role cannot be executed in the available environment, record behavior verification as unavailable and keep the role provisional rather than inferring success from the document.
+
+If the contract or behavior fails these cases, narrow, repair, or reject the role; do not make the rubric easier to obtain a pass. Do not turn transient scenario data into permanent project truth.
 
 ## Output and promotion
 
@@ -112,7 +130,7 @@ If it fails these cases, narrow or reject the role; do not make the rubric easie
 2. **Evidence:** precise, safe primary-source pointers, expected/observed behavior, and confidence.
 3. **Smallest alternative:** what can be fixed without a new role and why that is or is not sufficient.
 4. **Proposed role:** name, unique decision, input/output contract, effect boundary, and handoff.
-5. **Evaluation:** the positive, negative, uncertainty, and authorization cases; unresolved assumptions.
+5. **Evaluation:** contract-quality review, behavior-test evidence, the positive/negative/uncertainty/authority cases, and unresolved assumptions.
 6. **Next authorized step:** draft, revision, pilot, or stop. Do not automatically proceed.
 
 **Draft** emits the full Markdown for a candidate `agents/<role-slug>.md` with the sections above. An explicit role name is a request for a candidate, not proof of need.

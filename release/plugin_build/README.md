@@ -25,9 +25,10 @@ The command writes these ignored outputs:
 From the repository root:
 
 ```sh
-uv run --locked --project harnesses pytest release/plugin_build/tests
+uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py
 ```
 
-The tests prove deterministic package contents, canonical Skill provenance,
+These tests prove deterministic package contents, canonical Skill provenance,
 shared manifest identity, and rejection of missing, duplicate, escaping, or
-over-limit packages.
+over-limit packages. They do not prove Skill activation. Activation evidence
+is a separate gate in `docs/develop/gates.md`.

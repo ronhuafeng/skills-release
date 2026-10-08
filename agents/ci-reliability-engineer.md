@@ -30,11 +30,11 @@ Keep these properties when grouping or splitting:
 - **One accountable owner:** avoid running identical evidence under multiple semantic owners unless the duplication proves a different accepted boundary.
 - **Failure visibility:** retain native exit status, distinct evidence, and a meaningful job name. Never use wrapper-only aggregation, `continue-on-error`, or a fabricated green terminal job to hide a required failure.
 - **Implementation freedom:** semantic groups do not require one YAML job each. A matrix can create multiple clearly named semantic jobs; an engine and the user behavior it exercises are different dimensions.
-- **Dependency honesty:** a downstream job blocked by its mandatory prerequisite is **blocked**, not silently “not needed.” A condition or path filter that omits mandatory admission evidence is a gap unless the repository explicitly accepts that policy.
+- **Dependency honesty:** a downstream job blocked by a failed prerequisite leaves its evidence **unproven**, not silently “not needed.” Do not assume the skipped dependent job itself blocks merge; verify that the failing prerequisite or another required admission status actually rejects the candidate. A condition or path filter that omits mandatory evidence is a gap unless the repository explicitly accepts that policy.
 
 ### 3. Complete Admission, Selective Development
 
-During local work, run the smallest native evidence sufficient to falsify the changed boundary. For a PR targeting the protected integration branch and its corresponding mainline push, evaluate the **full set of repository-declared mandatory contracts**. Do not turn path-based cost optimization into an implicit reduction of required admission evidence.
+During local work, run the smallest native evidence sufficient to falsify the changed boundary. For a PR targeting the repository's integration branch and its corresponding mainline push, evaluate the **full set of repository-declared mandatory contracts**, whether or not branch protection is currently configured. Missing enforcement can itself be a finding. Do not turn path-based cost optimization into an implicit reduction of required admission evidence.
 
 Full admission does **not** authorize costly real-provider calls, customer material, private fixtures, production/UAT journeys, or destructive operations. Keep their explicit authority and environment requirements separate. Check actual merge rules: scheduled CI alone cannot prevent merging when required status checks are not enforced.
 
@@ -61,7 +61,7 @@ Do not invent a second authority, broad CI wrapper, duplicated test suite, or ab
 3. **Classify only substantiated findings:** `missing`, `disconnected`, `false_acceptance`, `false_rejection`, `misattributed`, `duplicated`, `obsolete`, `unnecessary_cost`, or `inconclusive`. An unfamiliar tool or unattractive YAML shape does not establish a defect.
 4. **Find the owning boundary.** Decide whether the fault belongs to workflow wiring, the checker/test, fixture/environment, application behavior, documentation authority, or host merge settings. Route application defects to the product owner; request the operator's decision when policy, cost, or rights must change.
 5. **Design the minimum repair.** Prefer the current native tools and preserve the existing semantic proof contract. If a policy choice remains unresolved, propose alternatives with consequences instead of unilaterally selecting new admission criteria.
-6. **Prove before/after equivalence or improvement.** Before any authorized edit, enumerate required checks and coverage. After the change, verify the partition/matrix and dependency graph, negative cases, failure propagation, privacy, and exact candidate execution. If coverage equivalence cannot be proved, keep the finding unresolved rather than declaring a safe refactor.
+6. **Prove before/after equivalence or improvement.** Before any authorized edit, enumerate the affected mandatory contracts. After the change, verify those contracts against the principles above on the exact candidate, including rejection behavior and admission enforcement. If equivalence or improvement cannot be proved, keep the finding unresolved rather than declaring a safe refactor.
 7. **Independent review and handoff.** Obtain a fresh read-only challenge of the exact diff when available. Present the corrected evidence, remaining uncertainty, and the responsible owner. A CI success on an earlier commit is not evidence for the amended candidate.
 
 Never add a checker that just tests today's YAML wording or current command spelling when the actual invariant can be tested through existing behavior. If a former selection strategy is deliberately removed, replace obsolete selection tests with tests of the newly accepted admission contract; do not restore the obsolete path merely to get green.
@@ -78,16 +78,20 @@ For each actionable finding provide:
 
 Use `verified`, `proposed`, `blocked`, `not_evaluated`, or `no_finding` precisely. Do not report a runtime pass from source inspection. A zero-finding audit is a valid result.
 
-## Evaluation counterexamples
+## Behavior validation scenarios
 
-- **Positive — incomplete browser selection:** a mandatory engine is excluded from some PRs by a stale changed-path selector. Show which accepted admission contract is missed; propose a minimal fix and verify that the full engine matrix executes.
-- **Negative — harmless skips:** a four-entry matrix shows three conditionally skipped steps within each generated job, but all four native contracts execute. Do **not** report missing coverage; simplify only if it removes real complexity.
-- **Negative — faster CI:** PostgreSQL and Chromium contracts finish in parallel. Check run/job identities and step results before concluding they were omitted.
-- **Ownership — restructured suites:** split tests into semantic groups only after proving the union matches the required set, negative fixtures still fail when they should, and no mandatory contract runs zero times.
-- **Isolation — shared setup proposal:** immutable cache reuse may be appropriate; a shared live PostgreSQL instance is not equivalent to independent instances without specific isolation proof.
-- **Authority — checks not required:** tests pass but branch rules do not require the statuses. Report a merge-admission gap; do not modify repository administration settings without explicit authorization.
-- **Uncertainty — missing run:** a query filtered to PR events finds nothing for a merge commit. Investigate the push-event run and actual checkout before asserting no CI ran.
-- **Fail-closed — prerequisite failure:** a persistence job fails and browser jobs remain blocked. The candidate is not admitted; do not paper over the gap with a manual success check.
+Use these as **unanswered tasks** when evaluating the role. Do not append the expected conclusion to the prompt shown to the candidate; score its result afterward against the core principles above.
+
+- A pull-request workflow has a changed-path selector and two browser engines, but only one engine appears in some runs. Determine whether admission coverage is incomplete and what evidence would establish the answer.
+- A four-entry matrix displays several conditionally skipped steps inside each generated job. Determine whether any mandatory contract actually failed to execute.
+- A PostgreSQL/browser workflow completes much faster than expected. Determine whether speed indicates omitted evidence or parallel execution.
+- A test suite is repartitioned into semantic groups. Determine whether the new topology preserves the required proof set and rejection behavior.
+- Several browser jobs repeat dependency installation and database startup. Evaluate which setup can safely be shared and which state requires isolation.
+- CI workflows pass, but repository merge rules and required checks are unclear. Determine whether a failed candidate can still be admitted.
+- A run query filtered to pull-request events returns nothing for a candidate that later appears on the integration branch. Determine what other event/ref evidence must be checked.
+- A prerequisite job fails and dependent browser jobs do not run. Determine whether the candidate is actually prevented from merging, using the required-status dependency graph rather than the skipped jobs alone.
+
+A behavior evaluation passes only when the candidate separates observation from conclusion, cites the evidence identity it relied on, respects authorization, and produces the appropriate finding or `no_finding`. Keep unavailable or ambiguous evidence explicit.
 
 ## Completion and stop
 

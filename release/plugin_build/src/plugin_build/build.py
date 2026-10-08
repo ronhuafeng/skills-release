@@ -9,6 +9,7 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 SOURCE_METADATA = "release/plugins/engineering/source.json"
@@ -93,6 +94,13 @@ MAX_DESCRIPTION_LENGTH = 1024
 MAX_AUTHOR_NAME_LENGTH = 120
 MAX_PATH_SEGMENTS = 20
 MAX_URL_LENGTH = 2048
+MAX_VERSION_LENGTH = 64
+MAX_DEFAULT_PROMPTS = 3
+MAX_DEFAULT_PROMPT_LENGTH = 512
+LIGHT_BACKGROUND = "#FFFFFF"
+DARK_BACKGROUND = "#212121"
+HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+LISTING_URLS = ("websiteURL", "privacyPolicyURL", "termsOfServiceURL", "supportURL")
 
 MAX_COMPRESSED_BYTES = 100 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
@@ -422,7 +430,8 @@ def _validate_metadata_shape(metadata: dict) -> None:
         raise PackageError("forbidden_content", "skills-only package cannot include screenshots")
     if set(interface) - ALLOWED_INTERFACE_KEYS:
         raise PackageError("invalid_source", "unknown OpenAI interface field")
-    if interface.get("category") not in CATEGORIES:
+    category = interface.get("category")
+    if category is not None and category not in CATEGORIES:
         raise PackageError("invalid_source", "category is not supported")
     capabilities = interface.get("capabilities", [])
     if not isinstance(capabilities, list) or len(capabilities) > 20:
@@ -438,14 +447,75 @@ def _validate_metadata_shape(metadata: dict) -> None:
             raise PackageError("invalid_source", f"{field} is missing or too long")
         if field != "longDescription" and "\n" in value:
             raise PackageError("invalid_source", f"{field} must be one line")
-    website = interface.get("websiteURL")
-    if website is not None and (
-        not isinstance(website, str) or not website.startswith("https://") or len(website) > MAX_URL_LENGTH
-    ):
-        raise PackageError("invalid_source", "websiteURL must be an HTTPS URL")
+    for field in LISTING_URLS:
+        if field in interface:
+            _require_https_url(interface[field], field)
+    for field, background in (("brandColor", LIGHT_BACKGROUND), ("brandColorDark", DARK_BACKGROUND)):
+        if field in interface:
+            _require_brand_color(interface[field], background)
+    if "defaultPrompt" in interface:
+        _require_default_prompts(interface["defaultPrompt"])
     for field in ("logo", "logoDark", "composerIcon", "composerIconDark"):
         if field in interface and not RELATIVE_REFERENCE_RE.fullmatch(interface[field]):
             raise PackageError("path_escape", field)
+
+
+
+def _require_https_url(value: object, field: str) -> None:
+    parsed = urlparse(value) if isinstance(value, str) else None
+    if (
+        not isinstance(value, str)
+        or parsed is None
+        or parsed.scheme != "https"
+        or not parsed.hostname
+        or parsed.username
+        or parsed.password
+        or len(value) > MAX_URL_LENGTH
+    ):
+        raise PackageError("invalid_source", f"{field} must be an HTTPS URL")
+
+
+def _require_brand_color(value: object, background: str) -> None:
+    if not isinstance(value, str) or not HEX_COLOR_RE.fullmatch(value):
+        raise PackageError("invalid_source", "brand color must be a six-digit hex color")
+    if _contrast(value, background) < 2:
+        raise PackageError("invalid_source", "brand color contrast is too low")
+
+
+def _require_default_prompts(value: object) -> None:
+    prompts = [value] if isinstance(value, str) else value
+    if not isinstance(prompts, list) or len(prompts) > MAX_DEFAULT_PROMPTS:
+        raise PackageError("invalid_source", "default prompts are invalid")
+    keys: list[str] = []
+    for prompt in prompts:
+        if (
+            not isinstance(prompt, str)
+            or not prompt.strip()
+            or "\n" in prompt
+            or len(prompt) > MAX_DEFAULT_PROMPT_LENGTH
+            or "@" in prompt
+        ):
+            raise PackageError("invalid_source", "default prompts are invalid")
+        keys.append(unicodedata.normalize("NFC", " ".join(prompt.split())))
+    if len(set(keys)) != len(keys):
+        raise PackageError("invalid_source", "default prompts are invalid")
+
+
+def _contrast(color: str, background: str) -> float:
+    luminances = sorted((_relative_luminance(color), _relative_luminance(background)), reverse=True)
+    return (luminances[0] + 0.05) / (luminances[1] + 0.05)
+
+
+def _relative_luminance(color: str) -> float:
+    channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+
+    def linear(channel: float) -> float:
+        if channel <= 0.04045:
+            return channel / 12.92
+        return ((channel + 0.055) / 1.055) ** 2.4
+
+    red, green, blue = (linear(channel) for channel in channels)
+    return 0.2126 * red + 0.7152 * green + 0.0722 * blue
 
 
 def _validate_plugin_document(document: dict) -> None:
@@ -496,7 +566,11 @@ def _require_name(name: object) -> None:
 
 
 def _require_semver(version: object) -> None:
-    if not isinstance(version, str) or not SEMVER_RE.fullmatch(version):
+    if (
+        not isinstance(version, str)
+        or len(version) > MAX_VERSION_LENGTH
+        or not SEMVER_RE.fullmatch(version)
+    ):
         raise PackageError("identity_mismatch", "version must be semantic")
 
 

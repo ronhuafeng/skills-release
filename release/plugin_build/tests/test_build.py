@@ -465,6 +465,166 @@ def test_skills_only_package_rejects_screenshots(tmp_path: Path) -> None:
     assert caught.value.code == "forbidden_content"
 
 
+def set_source_fields(repo: Path, **fields: object) -> None:
+    path = repo / "release" / "plugins" / "engineering" / "source.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document.update(fields)
+    write_json(path, document)
+
+
+def set_shared_version(repo: Path, version: str) -> None:
+    set_source_fields(repo, version=version)
+    for relative in (".codex-plugin/plugin.json", ".claude-plugin/plugin.json"):
+        path = repo / relative
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["version"] = version
+        write_json(path, document)
+
+
+def omit_interface_field(repo: Path, field: str) -> None:
+    path = repo / "release" / "plugins" / "engineering" / "source.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["openai"]["interface"].pop(field)
+    write_json(path, document)
+
+
+def interface_of(package) -> dict:
+    manifest = json.loads((package.root / "plugin.json").read_text(encoding="utf-8"))
+    return manifest["extensions"]["com.openai"]["interface"]
+
+
+def test_omitted_category_stays_omitted_and_unknown_category_fails(tmp_path: Path) -> None:
+    accepted = tmp_path / "accepted"
+    repo, _commit = make_repo(accepted)
+    omit_interface_field(repo, "category")
+    commit = recommit(repo, "omit category")
+    package = build(repo, commit, accepted / "out")
+    assert "category" not in interface_of(package)
+
+    rejected = tmp_path / "rejected"
+    repo, _commit = make_repo(rejected)
+    set_interface(repo, category="Nope")
+    commit = recommit(repo, "set unknown category")
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, rejected / "out")
+    assert caught.value.code == "invalid_source"
+
+
+def test_version_uses_package_length_limit(tmp_path: Path) -> None:
+    accepted_version = "1.2." + ("3" * 60)
+    assert len(accepted_version) == 64
+    accepted = tmp_path / "accepted"
+    repo, _commit = make_repo(accepted)
+    set_shared_version(repo, accepted_version)
+    commit = recommit(repo, "set long version")
+    package = build_portable_package(
+        repo,
+        version=accepted_version,
+        source_commit=commit,
+        destination=accepted / "out",
+    )
+    assert package.version == accepted_version
+
+    rejected_version = "1.2." + ("3" * 61)
+    assert len(rejected_version) == 65
+    rejected = tmp_path / "rejected"
+    repo, _commit = make_repo(rejected)
+    set_shared_version(repo, rejected_version)
+    commit = recommit(repo, "set overlong version")
+    with pytest.raises(PackageError) as caught:
+        build_portable_package(
+            repo,
+            version=rejected_version,
+            source_commit=commit,
+            destination=rejected / "out",
+        )
+    assert caught.value.code == "identity_mismatch"
+
+
+def test_optional_listing_urls_must_be_https_without_credentials(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    set_interface(
+        repo,
+        privacyPolicyURL="http://example.com/privacy",
+        termsOfServiceURL="https://user:secret@example.com/terms",
+        supportURL="https://" + ("a" * 2041),
+    )
+    commit = recommit(repo, "set listing urls")
+
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, tmp_path / "out")
+
+    assert caught.value.code == "invalid_source"
+
+
+def test_brand_colors_require_hex_and_package_contrast(tmp_path: Path) -> None:
+    rejected = tmp_path / "rejected"
+    repo, _commit = make_repo(rejected)
+    set_interface(repo, brandColor="#FFFFFF", brandColorDark="#212121")
+    commit = recommit(repo, "set low contrast colors")
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, rejected / "out")
+    assert caught.value.code == "invalid_source"
+
+    malformed = tmp_path / "malformed"
+    repo, _commit = make_repo(malformed)
+    set_interface(repo, brandColor="red")
+    commit = recommit(repo, "set malformed color")
+    with pytest.raises(PackageError) as caught:
+        build(repo, commit, malformed / "out")
+    assert caught.value.code == "invalid_source"
+
+    accepted = tmp_path / "accepted"
+    repo, _commit = make_repo(accepted)
+    set_interface(repo, brandColor="#000000", brandColorDark="#FFFFFF")
+    commit = recommit(repo, "set contrasting colors")
+    package = build(repo, commit, accepted / "out")
+    assert interface_of(package)["brandColor"] == "#000000"
+    assert interface_of(package)["brandColorDark"] == "#FFFFFF"
+
+
+def test_default_prompts_use_package_rules(tmp_path: Path) -> None:
+    accepted = tmp_path / "accepted"
+    repo, _commit = make_repo(accepted)
+    prompt = "A" * 512
+    set_interface(repo, defaultPrompt=[prompt])
+    commit = recommit(repo, "set prompt")
+    package = build(repo, commit, accepted / "out")
+    assert interface_of(package)["defaultPrompt"] == [prompt]
+
+    rejected = tmp_path / "rejected"
+    repo, _commit = make_repo(rejected)
+    set_interface(repo, defaultPrompt=["A" * 513])
+    commit = recommit(repo, "set long prompt")
+    with pytest.raises(PackageError) as length:
+        build(repo, commit, rejected / "out")
+    assert length.value.code == "invalid_source"
+
+    crowded = tmp_path / "crowded"
+    repo, _commit = make_repo(crowded)
+    set_interface(repo, defaultPrompt=["one", "two", "three", "four"])
+    commit = recommit(repo, "set four prompts")
+    with pytest.raises(PackageError) as count:
+        build(repo, commit, crowded / "out")
+    assert count.value.code == "invalid_source"
+
+    mentioned = tmp_path / "mentioned"
+    repo, _commit = make_repo(mentioned)
+    set_interface(repo, defaultPrompt=["Use @files"])
+    commit = recommit(repo, "set mention")
+    with pytest.raises(PackageError) as mention:
+        build(repo, commit, mentioned / "out")
+    assert mention.value.code == "invalid_source"
+
+    duplicated = tmp_path / "duplicated"
+    repo, _commit = make_repo(duplicated)
+    set_interface(repo, defaultPrompt=["Use alpha", "Use  alpha"])
+    commit = recommit(repo, "set duplicate prompts")
+    with pytest.raises(PackageError) as duplicate:
+        build(repo, commit, duplicated / "out")
+    assert duplicate.value.code == "invalid_source"
+
+
 def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> None:
     repo = Path(__file__).resolve().parents[3]
     clone = tmp_path / "clone"

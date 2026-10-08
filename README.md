@@ -30,6 +30,9 @@ This map explains how the main Skills relate. It is not a second catalog.
 - [`catalog/`](catalog/) contains the published Skills. Each Skill owns its
   `SKILL.md`, optional client metadata, and only the references or executables
   required by its contract.
+- [`agents/recruit.md`](agents/recruit.md) is an explicitly loaded meta-agent
+  contract for proposing specialist roles from retrospective evidence.
+  `agents/` prompts are not installed Skills or automatically activated agents.
 - [`harnesses/`](harnesses/) contains reusable mechanical APIs used by Skills.
 - [`docs/`](docs/) contains current architecture and verification decisions.
 

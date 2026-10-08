@@ -1,0 +1,35 @@
+{
+  "cases": [
+    {
+      "id": "direct-context",
+      "kind": "direct",
+      "prompt": "Use the context reduction workflow to keep only the facts required for this change.",
+      "expected_skill": "context-reduce"
+    },
+    {
+      "id": "indirect-plan",
+      "kind": "indirect",
+      "prompt": "Turn this accepted product goal into an ordered set of non-overlapping issues.",
+      "expected_skill": "plan-issue-roadmap"
+    },
+    {
+      "id": "negative-weather",
+      "kind": "negative",
+      "prompt": "What is the weather in Shanghai tomorrow?",
+      "expected_skill": null
+    },
+    {
+      "id": "follow-plan-order",
+      "kind": "follow_up",
+      "follows": "indirect-plan",
+      "prompt": "Now order only the remaining issues and do not add a new product goal.",
+      "expected_skill": "plan-issue-roadmap"
+    },
+    {
+      "id": "unsupported-publish",
+      "kind": "unsupported",
+      "prompt": "Publish this package to the public plugin directory right now.",
+      "expected_skill": null
+    }
+  ]
+}

@@ -42,6 +42,12 @@ The build checks shared identity fields against the Codex and Claude
 compatibility manifests. It does not require those whole files to equal the
 portable manifest. It does not publish the Plugin.
 
+`verify` keeps two separate jobs. **Plugin distribution contracts** proves the
+package structure only. **Plugin activation evaluation** checks the labelled
+golden prompts and reports live activation as unavailable when this repository
+has no supported Plugin surface. A green distribution job does not mean a
+Skill was selected.
+
 For a versioned release:
 
 1. Update `CHANGELOG.md` with user-visible changes and merge the change.

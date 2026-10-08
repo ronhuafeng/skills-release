@@ -65,7 +65,7 @@ earlier one:
 | `source_merged` | The canonical commit is on `main`. No package is required. |
 | `package_built` | The ZIP and provenance name that commit and the Plugin version. |
 | `package_verified` | Distribution contracts passed and live activation passed for that ZIP. Unavailable activation does not verify the package. |
-| `bounded_distribution` | A workspace or the repo marketplace at `.agents/plugins/marketplace.json` points at `./dist/plugins/ronhuafeng-engineering`. This is not public. |
+| `bounded_distribution` | The verified package is available through a workspace or `.agents/plugins/marketplace.json`. The marketplace path can be answered earlier. That path alone is not this state, and it is not public. |
 | `public_approved` | An operator reviewed the package, behavior evidence, `release/plugins/engineering/release-notes.md`, and `release/plugins/engineering/activation/golden-prompts.json`. |
 | `public_published` | The operator published that approved ZIP in the universal Plugins Directory. |
 

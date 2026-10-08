@@ -101,10 +101,10 @@ def publication_status(
             built_zip_sha256,
             "directory-review",
         )
-    if bounded_surface:
+    if bounded_surface and verified:
         return _status(
             "bounded_distribution",
-            verified,
+            True,
             source_commit,
             built_version,
             repository_release,
@@ -112,7 +112,15 @@ def publication_status(
             bounded_surface,
         )
     state = "package_verified" if verified else "package_built"
-    return _status(state, verified, source_commit, built_version, repository_release, built_zip_sha256, None)
+    return _status(
+        state,
+        verified,
+        source_commit,
+        built_version,
+        repository_release,
+        built_zip_sha256,
+        bounded_surface,
+    )
 
 
 def current_publication(repository: Path) -> PublicationStatus:

@@ -70,6 +70,19 @@ def test_built_package_is_not_public_when_activation_is_unavailable() -> None:
     assert report.source_commit == "a" * 40
 
 
+def test_workspace_surface_stays_visible_when_activation_is_unavailable() -> None:
+    report = status(
+        distribution_passed=True,
+        activation_status="unavailable",
+        bounded_surface="workspace",
+    )
+
+    assert report.state == "package_built"
+    assert report.surface == "workspace"
+    assert report.package_verified is False
+    assert report.plugin_release is False
+
+
 def test_workspace_distribution_is_not_public() -> None:
     report = status(
         distribution_passed=True,

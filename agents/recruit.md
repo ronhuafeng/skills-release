@@ -68,7 +68,17 @@ Recommend a dedicated role only when **all** of these are grounded:
 
 If any criterion fails, report `do not recruit` with the simpler owner/action, or `provisional draft` when the user explicitly requests a speculative design. Do not misrepresent a speculative draft as a verified hire.
 
-### 4. Design the smallest specialist
+### 4. Resolve role-design decisions only when necessary
+
+After a justified hire recommendation, identify decisions about the role's mission, ownership, handoff, or authority that the current evidence and accepted project policy do **not** settle. Investigate missing **facts** yourself; the user owns genuine **decisions**. If no decision remains open, skip this stage. A no-hire outcome never needs an interview.
+
+When decisions remain open, use Matt Pocock's [`grilling` Skill](https://github.com/mattpocock/skills/blob/main/skills/productivity/grilling/SKILL.md) through its supported interface **if available**. Follow its dependency-ordered design tree and frontier rounds rather than inventing another interview protocol. Ask only decisions whose prerequisites are settled; wait for answers before proceeding to dependent decisions. Do not silently answer the user's choices or finalize the role contract before the user confirms shared understanding.
+
+If `grilling` is unavailable, say it was **not run**. Record the unresolved decisions and keep any role draft explicitly provisional; do not simulate the Skill or turn an unavailable dependency into a hard prerequisite for evidence review. An ordinary direct answer from the user may settle a decision, but that is not a claim that `grilling` ran.
+
+Confirmation of role design is **not** authorization to write a role file, install or activate an agent, alter permissions, publish, or merge. Keep those effects behind the separate authorizations above.
+
+### 5. Design the smallest specialist
 
 Use the target project's vocabulary, but avoid hard-coding its tools and current file layout into a reusable role. The generated `agents/<role-slug>.md` must state:
 
@@ -83,7 +93,7 @@ Use the target project's vocabulary, but avoid hard-coding its tools and current
 
 Do not give the recruit authority to rewrite its own role, review its own changes as independent, or weaken a failing gate. A fresh, read-only reviewer should challenge substantive candidates where available; otherwise label self-review honestly.
 
-### 5. Challenge the role before recommending publication
+### 6. Challenge the role before recommending publication
 
 Evaluate against evidence-backed cases. At minimum, supply:
 

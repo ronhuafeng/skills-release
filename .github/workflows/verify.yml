@@ -31,6 +31,34 @@ jobs:
       - run: uv run --locked pytest
         working-directory: catalog/engineering/model-with-tla/orchestration
 
+  plugin-distribution:
+    name: Plugin distribution contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11.11"
+      - run: python -m pip install uv==0.6.6
+      - name: Verify the portable package
+        run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py
+
+  plugin-activation:
+    name: Plugin activation evaluation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11.11"
+      - run: python -m pip install uv==0.6.6
+      - name: Check the labelled golden prompts
+        run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_activation.py
+      - name: Report live activation availability
+        run: >-
+          PYTHONPATH=release/plugin_build/src
+          uv run --locked --project harnesses python -m plugin_build.activation
+
   go:
     runs-on: ubuntu-latest
     steps:

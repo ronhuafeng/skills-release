@@ -25,8 +25,7 @@ do not remove client-specific fields to pass
 a Codex-only frontmatter allowlist. A valid manifest alone does not prove
 complete discovery or invocation policy. Keep canonical Skill content in the
 existing catalog. The optional portable engineering Plugin is generated under
-ignored `dist/`; it is not a
-second Skill source.
+ignored `dist/`; it is not a second Skill source.
 
 ## GitHub engineering Plugin marketplace
 
@@ -80,7 +79,7 @@ earlier one:
 |-------|----------|
 | `source_merged` | The canonical commit is on `main`. No package is required. |
 | `package_built` | The ZIP and provenance name that commit and the Plugin version. |
-| `package_verified` | Distribution contracts passed and live activation passed for that ZIP. Unavailable activation does not verify the package. |
+| `package_verified` | Portable package contracts passed and live activation passed for that ZIP. Unavailable activation does not verify the package. |
 | `bounded_distribution` | The verified package is available through an explicitly configured bounded package surface. GitHub repository marketplace availability is separate from this ZIP state. |
 | `public_approved` | An operator reviewed the package, behavior evidence, `release/plugins/engineering/release-notes.md`, and `release/plugins/engineering/activation/golden-prompts.json`. |
 | `public_published` | The operator published that approved ZIP in the universal Plugins Directory. |

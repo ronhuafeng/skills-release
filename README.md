@@ -76,6 +76,11 @@ must install or refresh it through its client, then verify discovery in a new
 session. The plugin adds no MCP server, hook, or authentication requirement.
 It does not include `skill-manager` or `session-management`.
 
+Plugin installation does not install system tools or external Skills.
+`implement-tickets` still needs Matt's `implement`, `tdd`, and `code-review`;
+`model-with-tla` still needs uv and Java 11+. Existing Skill invocation policies
+and bundled resources are unchanged.
+
 ### Standalone Skills compatibility
 
 Use `npx skills` when installing individual standalone Skills, including
@@ -90,11 +95,6 @@ npx skills@latest add ronhuafeng/skills-release \
 
 Use [`skill-manager`](catalog/codex-skills/skill-manager/) when placement
 needs ownership, provenance, or multi-host reconciliation.
-
-Plugin installation does not install system tools or external Skills.
-`implement-tickets` still needs Matt's `implement`, `tdd`, and `code-review`;
-`model-with-tla` still needs uv and Java 11+. Existing Skill invocation policies
-and bundled resources are unchanged.
 
 ### Runtime prerequisites
 

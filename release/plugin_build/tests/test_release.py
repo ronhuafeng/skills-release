@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import json
 from pathlib import Path
 
 import pytest
@@ -139,7 +140,7 @@ def test_repository_publication_answers_identity_and_surface() -> None:
     commit = subprocess_commit(repo)
 
     assert report.source_commit == commit
-    assert report.package_version == "0.1.0"
+    assert report.package_version == json.loads((repo / ".codex-plugin/plugin.json").read_text())["version"]
     assert report.repository_release == "0.2.0"
     assert report.package_version != report.repository_release
     assert report.surface is None
@@ -153,3 +154,10 @@ def test_unrelated_main_ci_environment_does_not_mark_feature_commit_merged(monke
     monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
     monkeypatch.setenv("GITHUB_SHA", "1" * 40)
     assert _source_merged(repo, "0" * 40) is False
+
+
+def test_release_reporting_does_not_require_optional_zip_metadata(tmp_path: Path) -> None:
+    from test_build import make_repo
+    repo, _commit = make_repo(tmp_path)
+    (repo / "release/plugins/engineering/source.json").unlink()
+    assert current_publication(repo).package_version == "0.1.0"

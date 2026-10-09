@@ -126,7 +126,7 @@ def test_repository_golden_set_reports_live_activation_unavailable() -> None:
     report = evaluate_activation(repo)
 
     assert report.status == "unavailable"
-    assert report.package_version == "0.1.0"
+    assert report.package_version == json.loads((repo / ".codex-plugin/plugin.json").read_text())["version"]
     kinds = {case.kind for case in report.cases}
     assert kinds == {"direct", "indirect", "negative", "follow_up", "unsupported"}
     assert any(case.kind == "negative" and case.expected_skill is None for case in report.cases)
@@ -150,3 +150,10 @@ def test_distribution_and_activation_are_separate_jobs() -> None:
     assert "python -m plugin_build.activation" in activation
     assert "test_build.py" not in activation
     assert "release/plugin_build/tests/test_build.py" in release
+
+
+def test_activation_does_not_require_optional_zip_metadata(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    commit_golden(repo)
+    (repo / "release/plugins/engineering/source.json").unlink()
+    assert evaluate_activation(repo).status == "unavailable"

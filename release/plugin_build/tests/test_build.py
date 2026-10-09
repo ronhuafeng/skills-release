@@ -19,14 +19,6 @@ DESCRIPTION = (
     "Engineering skills for planning, implementation, context reduction, "
     "live evidence review, UI design, diagrams, and stateful-system verification."
 )
-SHARED_FIELDS = [
-    "name",
-    "version",
-    "description",
-    "author.name",
-    "repository",
-    "license",
-]
 
 
 def git(repo: Path, *args: str, input: bytes | None = None) -> subprocess.CompletedProcess[bytes]:
@@ -58,7 +50,6 @@ def make_repo(
     tmp_path: Path,
     *,
     skills: tuple[str, ...] = ("alpha", "beta"),
-    inventory: list[str] | None = None,
     codex_description: str = DESCRIPTION,
     logo: str | None = None,
     asset: dict | None = None,
@@ -99,19 +90,7 @@ def make_repo(
     if logo is not None:
         interface["logo"] = logo
     metadata = {
-        "name": "ronhuafeng-engineering",
-        "version": "0.1.0",
-        "description": DESCRIPTION,
-        "author": {"name": "ronhuafeng"},
-        "repository": "https://github.com/ronhuafeng/skills-release",
-        "license": "Apache-2.0",
         "keywords": ["engineering", "planning", "verification"],
-        "skills": list(skills) if inventory is None else inventory,
-        "shared_identity_fields": SHARED_FIELDS,
-        "compatibility_manifests": [
-            ".codex-plugin/plugin.json",
-            ".claude-plugin/plugin.json",
-        ],
         "openai": {"interface": interface},
     }
     if asset is not None:
@@ -208,25 +187,22 @@ def test_same_commit_and_version_produce_the_same_zip(tmp_path: Path) -> None:
     assert first.zip_path.read_bytes() == second.zip_path.read_bytes()
 
 
-def test_missing_or_undeclared_skill_fails(tmp_path: Path) -> None:
-    missing_repo, missing_commit = make_repo(tmp_path / "missing", inventory=["alpha", "gamma"])
+def test_empty_committed_inventory_fails(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    git(repo, "rm", "catalog/engineering/alpha/SKILL.md", "catalog/engineering/beta/SKILL.md")
+    commit = recommit(repo, "remove Skill entrypoints")
     with pytest.raises(PackageError) as missing:
-        build(missing_repo, missing_commit, tmp_path / "missing-out")
+        build(repo, commit, tmp_path / "out")
     assert missing.value.code == "missing_file"
 
-    extra_repo, extra_commit = make_repo(tmp_path / "extra", inventory=["alpha"])
-    with pytest.raises(PackageError) as extra:
-        build(extra_repo, extra_commit, tmp_path / "extra-out")
-    assert extra.value.code == "inventory_mismatch"
 
-
-def test_duplicate_skill_inventory_fails(tmp_path: Path) -> None:
-    repo, commit = make_repo(tmp_path, skills=("alpha",), inventory=["alpha", "alpha"])
-
+def test_package_config_rejects_shadow_inventory(tmp_path: Path) -> None:
+    repo, _commit = make_repo(tmp_path)
+    set_source_fields(repo, skills=["alpha", "alpha"])
+    commit = recommit(repo, "add obsolete shadow inventory")
     with pytest.raises(PackageError) as caught:
         build(repo, commit, tmp_path / "out")
-
-    assert caught.value.code == "duplicate_path"
+    assert caught.value.code == "invalid_source"
 
 
 def test_symlink_escape_fails(tmp_path: Path) -> None:
@@ -339,7 +315,6 @@ def recommit(repo: Path, message: str) -> str:
 
 def set_package_name(repo: Path, name: str) -> None:
     for relative in (
-        "release/plugins/engineering/source.json",
         ".codex-plugin/plugin.json",
         ".claude-plugin/plugin.json",
     ):
@@ -473,7 +448,6 @@ def set_source_fields(repo: Path, **fields: object) -> None:
 
 
 def set_shared_version(repo: Path, version: str) -> None:
-    set_source_fields(repo, version=version)
     for relative in (".codex-plugin/plugin.json", ".claude-plugin/plugin.json"):
         path = repo / relative
         document = json.loads(path.read_text(encoding="utf-8"))
@@ -640,7 +614,10 @@ def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> N
     if not (clone / "release" / "plugins" / "engineering" / "source.json").is_file():
         pytest.fail("source metadata is not on HEAD")
 
-    package = build(clone, commit, tmp_path / "dist")
+    package = build_portable_package(
+        clone, version=json.loads((clone / ".codex-plugin/plugin.json").read_text())["version"],
+        source_commit=commit, destination=tmp_path / "dist",
+    )
 
     canonical = sorted(
         path.parent.name
@@ -653,7 +630,7 @@ def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> N
     assert not any("/.venv/" in name or name.startswith("agents/") or name == "mcp.json" for name in names)
     provenance = json.loads((package.root / "assets" / "provenance.json").read_text(encoding="utf-8"))
     assert provenance["source_commit"] == commit
-    assert provenance["version"] == "0.1.0"
+    assert provenance["version"] == json.loads((clone / ".codex-plugin/plugin.json").read_text())["version"]
     for name in canonical:
         packaged = (package.root / "skills" / name / "SKILL.md").read_bytes()
         committed = git(clone, "show", f"HEAD:catalog/engineering/{name}/SKILL.md").stdout

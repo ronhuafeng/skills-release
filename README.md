@@ -51,19 +51,27 @@ codex plugin marketplace add ronhuafeng/skills-release --ref main
 codex plugin marketplace list
 ```
 
-In Codex CLI, start `codex`, open `/plugins`, find
-`ronhuafeng-engineering` in `ronhuafeng-skills`, and select **Install plugin**.
-Start a new Codex CLI session and confirm the installed Plugin and Skills.
-The marketplace CLI commands above register and inspect the source; they do
-not themselves prove that the Plugin is installed or active.
+In Codex CLI 0.162.0, install and read back the Plugin with the native commands:
+
+```sh
+codex plugin add ronhuafeng-engineering@ronhuafeng-skills --json
+codex plugin list --json
+```
+
+Clients with the interactive `/plugins` interface can select **Install plugin**
+there. Start a new session and confirm the installed Plugin and Skills.
+Marketplace registration alone does not prove installation or activation.
 The committed [marketplace entry](.agents/plugins/marketplace.json) points to
 the repository root. No `dist/` build or ZIP is needed.
 
 The repository root is the `ronhuafeng-engineering` Plugin. Its
 [Codex manifest](.codex-plugin/plugin.json) and
 [Claude manifest](.claude-plugin/plugin.json) both expose only
-`catalog/engineering`. Keep their identity, version, and Skill path equal;
-the existing Skill directories remain the single content source.
+`catalog/engineering`. The Codex manifest owns shared identity and version; validation checks semantic
+parity with the Claude manifest and their canonical Skill path. The tracked
+Skill directories own inventory and content. Optional ZIP configuration is
+not required for marketplace verification. Claude manifests are structurally
+checked; this does not establish Claude runtime behavior.
 
 For Claude Code, add the source marketplace and install the same plugin:
 
@@ -73,9 +81,12 @@ For Claude Code, add the source marketplace and install the same plugin:
 ```
 
 The consuming repository owns project enablement and may pin an accepted Git
-commit with `source.sha`. A Git reference is not an installed plugin: each host
-must install or refresh it through its client, then verify discovery in a new
-session. The plugin adds no MCP server, hook, or authentication requirement.
+commit with `source.sha`. `main` is a rolling source, while an installed cache
+records one resolved commit. Codex CLI 0.162.0 exposes
+`codex plugin marketplace upgrade ronhuafeng-skills --json` to refresh the
+marketplace snapshot. Read back the installed Plugin separately; marketplace
+refresh alone is not evidence that an installed cache advanced. Verify discovery
+in a new session. The plugin adds no MCP server, hook, or authentication requirement.
 It does not include `skill-manager` or `session-management`.
 
 Plugin installation does not install system tools or external Skills.

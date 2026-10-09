@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import json
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from .source import SourceError, load_plugin_source, read_committed_json
+
 GOLDEN_RELATIVE = Path("release/plugins/engineering/activation/golden-prompts.json")
-SOURCE_RELATIVE = Path("release/plugins/engineering/source.json")
 KINDS = {"direct", "indirect", "negative", "follow_up", "unsupported"}
 SELECTING_KINDS = {"direct", "indirect", "follow_up"}
 ABSTAINING_KINDS = {"negative", "unsupported"}
@@ -44,13 +43,18 @@ def evaluate_activation(
     surface: str | None = None,
 ) -> ActivationReport:
     repository = repository.resolve()
-    metadata = _read_json(repository / SOURCE_RELATIVE)
-    cases = _golden_cases(_read_json(repository / GOLDEN_RELATIVE), set(metadata["skills"]))
+    try:
+        authority = load_plugin_source(repository)
+        golden = read_committed_json(repository, GOLDEN_RELATIVE.as_posix())
+    except SourceError as error:
+        raise ActivationError("invalid_golden", str(error)) from error
+    metadata = authority.manifest
+    cases = _golden_cases(golden, set(authority.skills))
     report = ActivationReport(
         status="unavailable",
         package_name=str(metadata["name"]),
         package_version=str(metadata["version"]),
-        source_commit=_head(repository),
+        source_commit=authority.commit,
         surface=None,
         cases=cases,
         mismatches=(),
@@ -134,29 +138,6 @@ def _case(raw: object, skills: set[str]) -> GoldenCase:
         raise ActivationError("invalid_golden", f"follow-up has no prior case: {case_id}")
     return GoldenCase(case_id, kind, prompt, expected if isinstance(expected, str) else None, follows)
 
-
-def _read_json(path: Path) -> dict:
-    if not path.is_file():
-        raise ActivationError("invalid_golden", path.name)
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise ActivationError("invalid_golden", path.name) from error
-    if not isinstance(data, dict):
-        raise ActivationError("invalid_golden", path.name)
-    return data
-
-
-def _head(repository: Path) -> str:
-    try:
-        result = subprocess.run(
-            ["git", "-C", str(repository), "rev-parse", "HEAD"],
-            check=True,
-            capture_output=True,
-        )
-    except subprocess.CalledProcessError as error:
-        raise ActivationError("invalid_golden", "source commit is unreadable") from error
-    return result.stdout.decode().strip()
 
 
 if __name__ == "__main__":

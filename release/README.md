@@ -6,8 +6,10 @@ each consumer still installs and enables it in a supported client. The root
 README also documents standalone Skills installation.
 There is no export, mirror, or private-source synchronization step.
 
-The Codex and Claude manifests expose the engineering catalog through the same
-source revision. Shared identity fields must match. Do not require the whole
+The committed root Codex manifest owns Plugin identity/version, and the tracked
+engineering catalog owns inventory/content. The Codex and Claude manifests expose
+the engineering catalog through the same source revision. Shared identity fields
+must match semantically. Do not require the whole
 manifests to be byte-equal when client-specific fields diverge. Validate the
 Claude entrypoints separately:
 
@@ -33,8 +35,11 @@ The committed `.agents/plugins/marketplace.json` points to the public Git
 repository root at `main`. Its `.codex-plugin/plugin.json` loads
 `catalog/engineering/` directly. From a clean checkout, run
 `uv run --locked --project harnesses pytest release/plugin_build/tests/test_marketplace.py`
-to verify the marketplace source, Plugin identity, and tracked Skill inventory
-without generating `dist/`. A passing contract is source evidence only. In a
+to verify the marketplace source, root manifest identity, and every tracked
+catalog resource without generating `dist/` or reading optional ZIP configuration.
+Missing files, symlinks (including directory ancestors and Git links), dirty
+tracked inputs and unignored untracked inputs fail. Git-ignored runtime caches
+are not source inputs. A passing contract is source evidence only. In a
 supported client, add the marketplace, install/enable the Plugin, and verify
 Skill discovery and activation separately. The repository's CI does not claim
 live installation or activation.
@@ -42,7 +47,11 @@ live installation or activation.
 
 ## Portable engineering Plugin
 
-`release/plugins/engineering/source.json` is the package source metadata.
+`release/plugins/engineering/source.json` contains only ZIP-specific keywords,
+OpenAI presentation metadata and optional assets. The builder derives identity,
+version and discovered inventory from the committed root manifest/catalog, using
+the same scoped validator as marketplace and activation checks. It rejects
+obsolete shadow identity/inventory fields rather than accepting a second authority.
 `catalog/engineering/` remains the canonical Skill source. Build an ignored
 package for the current commit:
 
@@ -67,8 +76,8 @@ builder and reports ZIP publication state. It does not publish the Plugin.
 
 ## Plugin publication states
 
-The Plugin version is the shared `version` in
-`release/plugins/engineering/source.json` and the two compatibility manifests.
+The Plugin version is `version` in the root Codex manifest, checked for semantic
+parity with the Claude manifest.
 It is not the repository tag in `CHANGELOG.md`. A repository release is not a
 Plugin release.
 

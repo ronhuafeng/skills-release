@@ -51,9 +51,11 @@ codex plugin marketplace add ronhuafeng/skills-release --ref main
 codex plugin marketplace list
 ```
 
-In the ChatGPT desktop app, select the `ronhuafeng-skills` marketplace and
-install `ronhuafeng-engineering`. The CLI commands register and inspect the
-source; they do not themselves prove that the Plugin is installed or active.
+In Codex CLI, start `codex`, open `/plugins`, find
+`ronhuafeng-engineering` in `ronhuafeng-skills`, and select **Install plugin**.
+Start a new Codex CLI session and confirm the installed Plugin and Skills.
+The marketplace CLI commands above register and inspect the source; they do
+not themselves prove that the Plugin is installed or active.
 The committed [marketplace entry](.agents/plugins/marketplace.json) points to
 the repository root. No `dist/` build or ZIP is needed.
 

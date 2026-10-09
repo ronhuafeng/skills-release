@@ -614,7 +614,10 @@ def test_current_repository_package_traces_canonical_skills(tmp_path: Path) -> N
     if not (clone / "release" / "plugins" / "engineering" / "source.json").is_file():
         pytest.fail("source metadata is not on HEAD")
 
-    package = build(clone, commit, tmp_path / "dist")
+    package = build_portable_package(
+        clone, version=json.loads((clone / ".codex-plugin/plugin.json").read_text())["version"],
+        source_commit=commit, destination=tmp_path / "dist",
+    )
 
     canonical = sorted(
         path.parent.name

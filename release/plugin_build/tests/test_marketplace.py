@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from plugin_build import build_portable_package
 from plugin_build.marketplace import MarketplaceError, verify_marketplace_checkout
 from test_build import git, recommit, write_json
 
@@ -49,6 +50,12 @@ def test_future_skill_and_version_derive_from_committed_authority(checkout: Path
     contract = verify_marketplace_checkout(checkout)
     assert contract.version == "1.2.3"
     assert contract.skills == tuple(sorted((*previous.skills, name)))
+    package = build_portable_package(
+        checkout, version=contract.version, source_commit=contract.commit,
+        destination=checkout.parent / "future-zip",
+    )
+    assert tuple(skill.name for skill in package.skills) == contract.skills
+    assert package.version == contract.version
 
 
 @pytest.mark.parametrize("relative", [
@@ -147,3 +154,13 @@ def test_client_specific_manifest_fields_do_not_need_byte_parity(checkout: Path)
     write_json(path, document)
     recommit(checkout, "add client-specific field")
     assert verify_marketplace_checkout(checkout).skills
+
+
+def test_ignored_untracked_skill_cannot_become_inventory(checkout: Path) -> None:
+    skill = checkout / "catalog/engineering/ignored-skill/SKILL.md"
+    skill.parent.mkdir()
+    skill.write_text("untracked Skill\n")
+    with (checkout / ".git/info/exclude").open("a") as excludes:
+        excludes.write("\ncatalog/engineering/ignored-skill/\n")
+    with pytest.raises(MarketplaceError, match="uncommitted engineering Skill inventory"):
+        verify_marketplace_checkout(checkout)

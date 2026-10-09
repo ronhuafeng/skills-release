@@ -87,7 +87,6 @@ MAX_DESCRIPTION_LENGTH = 1024
 MAX_AUTHOR_NAME_LENGTH = 120
 MAX_PATH_SEGMENTS = 20
 MAX_URL_LENGTH = 2048
-MAX_VERSION_LENGTH = 64
 MAX_DEFAULT_PROMPTS = 3
 MAX_DEFAULT_PROMPT_LENGTH = 512
 LIGHT_BACKGROUND = "#FFFFFF"
@@ -99,8 +98,6 @@ MAX_COMPRESSED_BYTES = 100 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 5000
 MAX_ENTRY_BYTES = 100 * 1024 * 1024
-NAME_RE = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
-SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 RELATIVE_REFERENCE_RE = re.compile(r"^\./[A-Za-z0-9._/-]+$")
 
@@ -174,8 +171,6 @@ def build_portable_package(
     _validate_metadata_shape(metadata)
     if version != metadata["version"]:
         raise PackageError("identity_mismatch", "version does not match root Codex manifest")
-    _require_semver(version)
-    _require_name(metadata["name"])
     skills = authority.skills
     planned = _plan_files(repository, metadata, skills, commit)
     assert_unique_package_paths(item.path for item in planned)
@@ -497,20 +492,6 @@ def _require_interface_files(metadata: dict, paths: set[str]) -> None:
             raise PackageError("missing_file", asset["source"])
 
 
-def _require_name(name: object) -> None:
-    if not isinstance(name, str) or len(name) > 64 or not NAME_RE.fullmatch(name):
-        raise PackageError("identity_mismatch", "plugin name is not portable")
-
-
-def _require_semver(version: object) -> None:
-    if (
-        not isinstance(version, str)
-        or len(version) > MAX_VERSION_LENGTH
-        or not SEMVER_RE.fullmatch(version)
-    ):
-        raise PackageError("identity_mismatch", "version must be semantic")
-
-
 def _require_commit(commit: str) -> str:
     normalized = commit.lower()
     if not COMMIT_RE.fullmatch(normalized):
@@ -567,18 +548,6 @@ def _parse_ls_tree(line: str) -> tuple[str, str, str, str]:
     meta, path = line.split("\t", 1)
     mode, kind, blob = meta.split(" ", 2)
     return mode, kind, blob, path
-
-
-def _read_json(path: Path) -> dict:
-    if not path.is_file():
-        raise PackageError("missing_file", path.name)
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as error:
-        raise PackageError("invalid_source", path.name) from error
-    if not isinstance(data, dict):
-        raise PackageError("invalid_source", path.name)
-    return data
 
 
 def _dump(document: dict) -> bytes:

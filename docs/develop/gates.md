@@ -21,7 +21,7 @@ proves.
 | Python primitive workspace | From `harnesses/`: `uv run pytest` |
 | `skill-manager` orchestration | From the repository root, run the exact locked test command in the closest package README |
 | Go primitive | In the changed module: `GOWORK=off go test ./... -count=1` |
-| Plugin distribution contracts | Separate `verify` job **Plugin distribution contracts**. From the repository root: `uv run --locked --project harnesses pytest release/plugin_build/tests/test_marketplace.py`. This verifies a committed checkout without building `dist/`. |
+| Plugin distribution contracts | Separate `verify` job **Plugin distribution contracts**. From the repository root: `uv run --locked --project harnesses pytest release/plugin_build/tests/test_marketplace.py`. This verifies root manifest identity, semantic Claude parity and all tracked canonical resources in a committed checkout, independent of ZIP metadata or `dist/`. |
 | Plugin activation evaluation | Separate `verify` job **Plugin activation evaluation**. Report live activation as unavailable when no supported surface result is supplied. Package success is not activation success. |
 | Plugin release ladder | Separate `verify` job **Plugin release ladder**. From the repository root: `uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py release/plugin_build/tests/test_release.py`. These optional ZIP contracts do not prove marketplace installation. |
 | Session-management orchestration | From `catalog/codex-sessions/session-management/orchestration-go`: `GOWORK=off go test ./... -count=1`, `go vet ./...`, and build the command when executable wiring changes |
@@ -29,7 +29,7 @@ proves.
 | Host, registry, snapshot, session, or app mutation | Relevant Contract/Integration gates plus a scoped Live proof and post-mutation state readback |
 | Runtime installation | Build with `install-runtime` into an isolated directory; run the installed executable on bounded synthetic input outside the checkout; verify the user-visible result |
 | Standalone Skills release | Require CI for the exact public commit; list and install from the public URL with one recorded `skills` CLI version; verify the tag target and release metadata |
-| Engineering Plugin marketplace | Verify the committed GitHub source and canonical Skills without `dist/`; live installation, enablement, and activation need separate supported-client evidence. |
+| Engineering Plugin marketplace | Verify the committed GitHub source and canonical Skills without `dist/`; live installation, enablement, and activation need separate supported-client evidence for the exact candidate SHA. A rolling marketplace ref or snapshot refresh does not prove the installed cache commit. Previous-revision activation must not be reused. When candidate client evidence cannot be obtained, record `not_evaluated` and keep acceptance pending. |
 
 Use `uv run python ...` for repository Python execution. A one-off command that
 needs a missing dependency uses a temporary uv dependency environment; it does

@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from plugin_build.marketplace import MarketplaceError, verify_marketplace_checkout
+from test_build import git, recommit, write_json
 
 
 @pytest.fixture
@@ -19,34 +20,130 @@ def checkout(tmp_path: Path) -> Path:
 
 def test_committed_checkout_exposes_canonical_plugin_without_package(checkout: Path) -> None:
     contract = verify_marketplace_checkout(checkout)
-    assert contract.commit == subprocess.check_output(["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True).strip()
-    assert contract.version == "0.1.0"
-    assert len(contract.skills) == 9
+    assert contract.commit == git(checkout, "rev-parse", "HEAD").stdout.decode().strip()
+    assert contract.version == json.loads((checkout / ".codex-plugin/plugin.json").read_text())["version"]
+    assert contract.skills == tuple(sorted(path.parent.name for path in (checkout / "catalog/engineering").glob("*/SKILL.md")))
     assert not (checkout / "dist").exists()
 
 
-def test_missing_or_uncommitted_marketplace_targets_fail(checkout: Path) -> None:
-    manifest = checkout / ".codex-plugin/plugin.json"
-    manifest.unlink()
-    with pytest.raises(MarketplaceError, match="missing marketplace target"):
+def test_marketplace_has_no_optional_release_dependency(checkout: Path) -> None:
+    import shutil
+    shutil.rmtree(checkout / "release/plugins/engineering")
+    assert verify_marketplace_checkout(checkout).skills
+
+
+def test_future_skill_and_version_derive_from_committed_authority(checkout: Path) -> None:
+    previous = verify_marketplace_checkout(checkout)
+    name = "future-skill"
+    target = checkout / f"catalog/engineering/{name}/SKILL.md"
+    target.parent.mkdir()
+    target.write_text(f"---\nname: {name}\ndescription: A future Skill.\n---\n", encoding="utf-8")
+    (target.parent / "resource.txt").write_text("committed resource\n")
+    for relative in (".codex-plugin/plugin.json", ".claude-plugin/plugin.json"):
+        path = checkout / relative
+        manifest = json.loads(path.read_text())
+        manifest["version"] = "1.2.3"
+        write_json(path, manifest)
+    # No shadow inventory or release config update is needed.
+    recommit(checkout, "add legitimate future Skill and version")
+    contract = verify_marketplace_checkout(checkout)
+    assert contract.version == "1.2.3"
+    assert contract.skills == tuple(sorted((*previous.skills, name)))
+
+
+@pytest.mark.parametrize("relative", [
+    ".codex-plugin/plugin.json",
+    ".claude-plugin/plugin.json",
+    ".agents/plugins/marketplace.json",
+    ".claude-plugin/marketplace.json",
+    "catalog/engineering/context-reduce/SKILL.md",
+    "catalog/engineering/context-reduce/references/review-guide.md",
+    "catalog/engineering/model-with-tla/.tools/tla2tools.jar",
+])
+@pytest.mark.parametrize("mutation", ["missing", "dirty", "staged", "untracked", "symlink"])
+def test_marketplace_rejects_noncommitted_targets(checkout: Path, relative: str, mutation: str) -> None:
+    path = checkout / relative
+    if mutation == "missing":
+        path.unlink()
+    elif mutation in {"dirty", "staged"}:
+        path.write_bytes(path.read_bytes() + b"\nchanged\n")
+        if mutation == "staged":
+            git(checkout, "add", relative)
+    elif mutation == "untracked":
+        git(checkout, "rm", "--cached", relative)
+    else:
+        original = path.read_bytes()
+        outside = checkout.parent / "outside"
+        outside.write_bytes(original)
+        path.unlink()
+        path.symlink_to(outside)
+    with pytest.raises(MarketplaceError):
         verify_marketplace_checkout(checkout)
 
-    manifest.write_bytes(subprocess.check_output(["git", "-C", str(checkout), "show", "HEAD:.codex-plugin/plugin.json"]))
-    metadata_path = checkout / "release/plugins/engineering/source.json"
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    metadata["skills"].append("uncommitted")
-    metadata_path.write_text(json.dumps(metadata), encoding="utf-8")
-    skill = checkout / "catalog/engineering/uncommitted/SKILL.md"
+
+def test_untracked_new_skill_and_resource_fail(checkout: Path) -> None:
+    resource = checkout / "catalog/engineering/context-reduce/untracked.txt"
+    resource.write_text("resource\n")
+    with pytest.raises(MarketplaceError, match="uncommitted"):
+        verify_marketplace_checkout(checkout)
+    resource.unlink()
+    skill = checkout / "catalog/engineering/new-skill/SKILL.md"
     skill.parent.mkdir()
-    skill.write_text("---\nname: uncommitted\n---\n", encoding="utf-8")
-    with pytest.raises(MarketplaceError, match="uncommitted engineering Skill"):
+    skill.write_text("new Skill\n")
+    with pytest.raises(MarketplaceError, match="uncommitted"):
         verify_marketplace_checkout(checkout)
 
 
-def test_local_dist_source_cannot_pass(checkout: Path) -> None:
-    path = checkout / ".agents/plugins/marketplace.json"
-    catalog = json.loads(path.read_text(encoding="utf-8"))
-    catalog["plugins"][0]["source"] = {"source": "local", "path": "./dist/plugins/ronhuafeng-engineering"}
-    path.write_text(json.dumps(catalog), encoding="utf-8")
-    with pytest.raises(MarketplaceError, match="public Git repository root"):
+@pytest.mark.parametrize("mutation", ["local-source", "claude-identity", "claude-path", "claude-marketplace"])
+def test_committed_manifest_and_marketplace_semantics_fail(checkout: Path, mutation: str) -> None:
+    relative = {
+        "local-source": ".agents/plugins/marketplace.json",
+        "claude-identity": ".claude-plugin/plugin.json",
+        "claude-path": ".claude-plugin/plugin.json",
+        "claude-marketplace": ".claude-plugin/marketplace.json",
+    }[mutation]
+    path = checkout / relative
+    document = json.loads(path.read_text())
+    if mutation == "local-source":
+        document["plugins"][0]["source"] = {"source": "local", "path": "./dist/plugins/ronhuafeng-engineering"}
+    elif mutation == "claude-identity":
+        document["version"] = "9.9.9"
+    elif mutation == "claude-path":
+        document["skills"] = "./catalog/codex-skills"
+    else:
+        document["plugins"][0]["source"] = "./dist"
+    write_json(path, document)
+    recommit(checkout, "commit invalid consumer contract")
+    with pytest.raises(MarketplaceError):
         verify_marketplace_checkout(checkout)
+
+
+@pytest.mark.parametrize("mutation", ["resource-symlink", "directory-symlink", "case-collision", "gitlink"])
+def test_committed_unsafe_resources_fail(checkout: Path, mutation: str) -> None:
+    root = checkout / "catalog/engineering/context-reduce"
+    if mutation == "resource-symlink":
+        (root / "escape").symlink_to("/tmp")
+    elif mutation == "directory-symlink":
+        import shutil
+        saved = checkout.parent / "saved"
+        shutil.move(root / "references", saved)
+        (root / "references").symlink_to(saved, target_is_directory=True)
+    elif mutation == "case-collision":
+        (root / "SKILL.MD").write_text("collision\n")
+    else:
+        git(checkout, "update-index", "--add", "--cacheinfo", f"160000,{git(checkout, 'rev-parse', 'HEAD').stdout.decode().strip()},catalog/engineering/context-reduce/submodule")
+    if mutation == "gitlink":
+        git(checkout, "commit", "-m", "commit unsafe canonical resource")
+    else:
+        recommit(checkout, "commit unsafe canonical resource")
+    with pytest.raises(MarketplaceError):
+        verify_marketplace_checkout(checkout)
+
+
+def test_client_specific_manifest_fields_do_not_need_byte_parity(checkout: Path) -> None:
+    path = checkout / ".claude-plugin/plugin.json"
+    document = json.loads(path.read_text())
+    document["keywords"] = ["claude"]
+    write_json(path, document)
+    recommit(checkout, "add client-specific field")
+    assert verify_marketplace_checkout(checkout).skills

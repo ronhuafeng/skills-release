@@ -7,6 +7,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from .source import load_plugin_source
+
 
 class ReleaseError(Exception):
     def __init__(self, code: str, message: str) -> None:
@@ -129,10 +131,10 @@ def publication_status(
 
 def current_publication(repository: Path) -> PublicationStatus:
     repository = repository.resolve()
-    metadata = _read_json(repository / "release" / "plugins" / "engineering" / "source.json")
-    version = str(metadata["version"])
-    commit = _head(repository)
-    built_commit, built_version, digest = _built_package(repository, commit, version)
+    authority = load_plugin_source(repository)
+    version = authority.manifest["version"]
+    commit = authority.commit
+    built_commit, built_version, digest = _built_package(repository, commit, version, authority.manifest["name"])
     notes_path = repository / "release" / "plugins" / "engineering" / "release-notes.md"
     notes = notes_path.read_text(encoding="utf-8") if notes_path.is_file() else None
     return publication_status(
@@ -167,9 +169,7 @@ def main() -> int:
     return 0
 
 
-def _built_package(repository: Path, commit: str, version: str) -> tuple[str | None, str | None, str | None]:
-    metadata = _read_json(repository / "release" / "plugins" / "engineering" / "source.json")
-    name = str(metadata["name"])
+def _built_package(repository: Path, commit: str, version: str, name: str) -> tuple[str | None, str | None, str | None]:
     root = repository / "dist" / "plugins" / name
     provenance_path = root / "assets" / "provenance.json"
     zip_path = repository / "dist" / "plugins" / f"{name}-{version}.zip"
@@ -252,14 +252,6 @@ def _read_json(path: Path) -> dict:
         raise ReleaseError("identity_mismatch", path.name)
     return data
 
-
-def _head(repository: Path) -> str:
-    result = subprocess.run(
-        ["git", "-C", str(repository), "rev-parse", "HEAD"],
-        check=True,
-        capture_output=True,
-    )
-    return result.stdout.decode().strip()
 
 
 if __name__ == "__main__":

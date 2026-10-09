@@ -11,17 +11,10 @@ from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
 
+from .source import CANONICAL_ROOT, PluginSource, SourceError, load_plugin_source, read_committed_json
+
 SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 SOURCE_METADATA = "release/plugins/engineering/source.json"
-CANONICAL_ROOT = "catalog/engineering"
-REQUIRED_SHARED_FIELDS = (
-    "name",
-    "version",
-    "description",
-    "author.name",
-    "repository",
-    "license",
-)
 INPUT_PATHS = (
     CANONICAL_ROOT,
     "release/plugins/engineering",
@@ -107,7 +100,6 @@ MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
 MAX_ENTRIES = 5000
 MAX_ENTRY_BYTES = 100 * 1024 * 1024
 NAME_RE = re.compile(r"^(?!.*--)[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$")
-SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 RELATIVE_REFERENCE_RE = re.compile(r"^\./[A-Za-z0-9._/-]+$")
@@ -143,10 +135,10 @@ class PortablePackage:
 
 
 def build_from_head(repository: Path, destination: Path | None = None) -> PortablePackage:
-    metadata = _read_json(repository / SOURCE_METADATA)
+    authority = _load_source(repository)
     return build_portable_package(
         repository,
-        version=str(metadata["version"]),
+        version=authority.manifest["version"],
         source_commit=git_head(repository),
         destination=destination or repository / "dist" / "plugins",
     )
@@ -165,18 +157,26 @@ def build_portable_package(
     commit = _require_commit(source_commit)
     if commit != git_head(repository):
         raise PackageError("identity_mismatch", "source commit does not match HEAD")
+    authority = _load_source(repository)
     _require_clean(repository)
-    metadata = _read_json(repository / SOURCE_METADATA)
+    try:
+        metadata = read_committed_json(repository, SOURCE_METADATA)
+    except SourceError as error:
+        raise PackageError(error.code, str(error)) from error
+    if set(metadata) - {"keywords", "openai", "assets"}:
+        raise PackageError("invalid_source", "ZIP config contains non-package fields")
+    metadata = {
+        **metadata,
+        **{field: authority.manifest[field] for field in ("name", "version", "description", "repository", "license")},
+        "author": {"name": authority.manifest["author"]["name"]},
+        "skills": list(authority.skills),
+    }
     _validate_metadata_shape(metadata)
     if version != metadata["version"]:
-        raise PackageError("identity_mismatch", "version does not match source metadata")
+        raise PackageError("identity_mismatch", "version does not match root Codex manifest")
     _require_semver(version)
     _require_name(metadata["name"])
-    _require_shared_fields(metadata)
-    for manifest_path in metadata["compatibility_manifests"]:
-        _require_shared_values(metadata, _read_json(repository / manifest_path))
-    skills = _canonical_skills(repository)
-    _require_inventory(metadata["skills"], skills)
+    skills = authority.skills
     planned = _plan_files(repository, metadata, skills, commit)
     assert_unique_package_paths(item.path for item in planned)
     package_dir = destination / metadata["name"]
@@ -315,48 +315,11 @@ def _plan_files(
     return sorted(planned, key=lambda item: item.path)
 
 
-def _canonical_skills(repository: Path) -> dict[str, list[tuple[str, str, str]]]:
-    result = _git(repository, "ls-tree", "-r", "HEAD", CANONICAL_ROOT)
-    skills: dict[str, list[tuple[str, str, str]]] = {}
-    unsafe: set[str] = set()
-    with_skill: set[str] = set()
-    prefix = f"{CANONICAL_ROOT}/"
-    for line in result.stdout.decode().splitlines():
-        mode, kind, blob, path = _parse_ls_tree(line)
-        if kind != "blob" or not path.startswith(prefix):
-            continue
-        relative = path[len(prefix) :]
-        name, separator, inner = relative.partition("/")
-        if not separator:
-            continue
-        if inner == "SKILL.md":
-            with_skill.add(name)
-        if not SKILL_NAME_RE.fullmatch(name):
-            unsafe.add(name)
-            continue
-        skills.setdefault(name, []).append((mode, blob, inner))
-    unsafe_skills = sorted(unsafe & with_skill)
-    if unsafe_skills:
-        raise PackageError(
-            "inventory_mismatch",
-            "skill name is not package-safe: " + ", ".join(unsafe_skills),
-        )
-    return {
-        name: entries
-        for name, entries in skills.items()
-        if name in with_skill
-    }
-
-
-def _require_inventory(declared: list[str], skills: dict[str, list[tuple[str, str, str]]]) -> None:
-    if len(declared) != len(set(declared)):
-        raise PackageError("duplicate_path", "skill inventory contains a duplicate")
-    missing = [name for name in declared if name not in skills]
-    if missing:
-        raise PackageError("missing_file", "missing skill: " + ", ".join(missing))
-    extra = sorted(set(skills) - set(declared))
-    if extra:
-        raise PackageError("inventory_mismatch", "undeclared skill: " + ", ".join(extra))
+def _load_source(repository: Path) -> PluginSource:
+    try:
+        return load_plugin_source(repository)
+    except SourceError as error:
+        raise PackageError(error.code, str(error)) from error
 
 
 def _plugin_bytes(metadata: dict) -> bytes:
@@ -393,14 +356,12 @@ def _provenance_bytes(metadata: dict, commit: str) -> bytes:
 def _validate_metadata_shape(metadata: dict) -> None:
     required = {
         "author",
-        "compatibility_manifests",
         "description",
         "keywords",
         "license",
         "name",
         "openai",
         "repository",
-        "shared_identity_fields",
         "skills",
         "version",
     }
@@ -534,27 +495,6 @@ def _require_interface_files(metadata: dict, paths: set[str]) -> None:
     for asset in metadata.get("assets", []):
         if asset["package"] not in paths:
             raise PackageError("missing_file", asset["source"])
-
-
-def _require_shared_fields(metadata: dict) -> None:
-    declared = metadata["shared_identity_fields"]
-    if sorted(declared) != sorted(REQUIRED_SHARED_FIELDS) or len(declared) != len(REQUIRED_SHARED_FIELDS):
-        raise PackageError("identity_mismatch", "shared identity fields changed")
-
-
-def _require_shared_values(source: dict, manifest: dict) -> None:
-    for field in REQUIRED_SHARED_FIELDS:
-        if _dotted(source, field) != _dotted(manifest, field):
-            raise PackageError("identity_mismatch", f"shared field differs: {field}")
-
-
-def _dotted(document: dict, field: str) -> object:
-    current: object = document
-    for part in field.split("."):
-        if not isinstance(current, dict) or part not in current:
-            raise PackageError("identity_mismatch", f"shared field is missing: {field}")
-        current = current[part]
-    return current
 
 
 def _require_name(name: object) -> None:

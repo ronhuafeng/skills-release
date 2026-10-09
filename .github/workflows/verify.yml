@@ -40,8 +40,8 @@ jobs:
         with:
           python-version: "3.11.11"
       - run: python -m pip install uv==0.6.6
-      - name: Verify the portable package
-        run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py
+      - name: Verify the committed GitHub marketplace checkout
+        run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_marketplace.py
 
   plugin-activation:
     name: Plugin activation evaluation
@@ -68,6 +68,8 @@ jobs:
         with:
           python-version: "3.11.11"
       - run: python -m pip install uv==0.6.6
+      - name: Verify the optional portable package builder
+        run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_build.py
       - name: Check publication states
         run: uv run --locked --project harnesses pytest release/plugin_build/tests/test_release.py
       - name: Report the current publication state

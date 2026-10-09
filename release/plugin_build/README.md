@@ -1,7 +1,9 @@
-# Portable Plugin build
+# Optional portable Plugin build
 
 Build one ignored engineering Plugin package from the canonical Skill catalog
 and `release/plugins/engineering/source.json`.
+The public GitHub marketplace loads the committed repository root directly;
+this build is for an explicitly chosen ZIP release and is not an install step.
 
 The build reads the committed Git tree at `HEAD`. It does not change canonical
 Skill source, and it does not publish the Plugin.

@@ -140,10 +140,13 @@ def test_distribution_and_activation_are_separate_jobs() -> None:
     text = workflow.read_text(encoding="utf-8")
     assert text.count("name: Plugin distribution contracts") == 1
     assert text.count("name: Plugin activation evaluation") == 1
-    distribution, activation = text.split("name: Plugin activation evaluation", 1)
+    distribution, remainder = text.split("name: Plugin activation evaluation", 1)
+    activation, release = remainder.split("plugin-release:", 1)
 
     assert "name: Plugin distribution contracts" in distribution
-    assert "release/plugin_build/tests/test_build.py" in distribution
+    assert "release/plugin_build/tests/test_marketplace.py" in distribution
+    assert "release/plugin_build/tests/test_build.py" not in distribution
     assert "plugin_build.activation" not in distribution
     assert "python -m plugin_build.activation" in activation
     assert "test_build.py" not in activation
+    assert "release/plugin_build/tests/test_build.py" in release

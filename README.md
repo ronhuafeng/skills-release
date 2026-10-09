@@ -41,50 +41,27 @@ maintain a second Skill list.
 
 ## Install
 
-Use the standard Skills installer. Global Codex installation writes to the
-shared `~/.agents/skills` registry.
-
-```sh
-npx skills@latest add ronhuafeng/skills-release -g --agent codex
-```
-
-The installer lets you select Skills. To install one Skill directly:
-
-```sh
-npx skills@latest add ronhuafeng/skills-release \
-  -g --agent codex --skill context-reduce
-```
-
-Use [`skill-manager`](catalog/codex-skills/skill-manager/) only when placement
-needs ownership, provenance, or multi-host reconciliation.
-
 ### Engineering plugin
 
-The repository root is also the `ronhuafeng-engineering` plugin. Its
+The public GitHub repository marketplace is the engineering Plugin's default
+distribution channel. Add it in a supported Codex client:
+
+```sh
+codex plugin marketplace add ronhuafeng/skills-release --ref main
+codex plugin marketplace list
+```
+
+In the ChatGPT desktop app, select the `ronhuafeng-skills` marketplace and
+install `ronhuafeng-engineering`. The CLI commands register and inspect the
+source; they do not themselves prove that the Plugin is installed or active.
+The committed [marketplace entry](.agents/plugins/marketplace.json) points to
+the repository root. No `dist/` build or ZIP is needed.
+
+The repository root is the `ronhuafeng-engineering` Plugin. Its
 [Codex manifest](.codex-plugin/plugin.json) and
 [Claude manifest](.claude-plugin/plugin.json) both expose only
 `catalog/engineering`. Keep their identity, version, and Skill path equal;
-the existing Skill directories remain the single content source. Individual
-Skill installation remains supported. The remote installation examples below
-require a published revision containing these manifests.
-
-For a Codex repo marketplace, reference this repository root as a Git plugin:
-
-```json
-{
-  "name": "ronhuafeng-engineering",
-  "source": {
-    "source": "url",
-    "url": "https://github.com/ronhuafeng/skills-release.git",
-    "ref": "main"
-  },
-  "policy": {
-    "installation": "AVAILABLE",
-    "authentication": "ON_INSTALL"
-  },
-  "category": "Developer Tools"
-}
-```
+the existing Skill directories remain the single content source.
 
 For Claude Code, add the source marketplace and install the same plugin:
 
@@ -98,6 +75,21 @@ commit with `source.sha`. A Git reference is not an installed plugin: each host
 must install or refresh it through its client, then verify discovery in a new
 session. The plugin adds no MCP server, hook, or authentication requirement.
 It does not include `skill-manager` or `session-management`.
+
+### Standalone Skills compatibility
+
+Use `npx skills` when installing individual standalone Skills, including
+non-Plugin catalog entries. This path does not install the engineering Plugin.
+Global Codex installation writes to the shared `~/.agents/skills` registry.
+
+```sh
+npx skills@latest add ronhuafeng/skills-release -g --agent codex
+npx skills@latest add ronhuafeng/skills-release \
+  -g --agent codex --skill context-reduce
+```
+
+Use [`skill-manager`](catalog/codex-skills/skill-manager/) when placement
+needs ownership, provenance, or multi-host reconciliation.
 
 Plugin installation does not install system tools or external Skills.
 `implement-tickets` still needs Matt's `implement`, `tdd`, and `code-review`;

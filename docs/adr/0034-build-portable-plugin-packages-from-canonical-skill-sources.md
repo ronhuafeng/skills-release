@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: amended by 0035
 ---
 
 # Build portable Plugin packages from canonical Skill sources

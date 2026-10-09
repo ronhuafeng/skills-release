@@ -132,8 +132,6 @@ def current_publication(repository: Path) -> PublicationStatus:
     metadata = _read_json(repository / "release" / "plugins" / "engineering" / "source.json")
     version = str(metadata["version"])
     commit = _head(repository)
-    marketplace = read_openai_marketplace(repository)
-    configured_surface = str(marketplace["plugins"][0]["source"]["path"])
     built_commit, built_version, digest = _built_package(repository, commit, version)
     notes_path = repository / "release" / "plugins" / "engineering" / "release-notes.md"
     notes = notes_path.read_text(encoding="utf-8") if notes_path.is_file() else None
@@ -147,33 +145,12 @@ def current_publication(repository: Path) -> PublicationStatus:
         built_zip_sha256=digest,
         distribution_passed=False,
         activation_status="unavailable",
-        bounded_surface=configured_surface,
+        bounded_surface=None,
         release_notes=notes,
         approval=None,
         publication=None,
         prior_publication=None,
     )
-
-
-def read_openai_marketplace(repository: Path) -> dict:
-    path = repository / ".agents" / "plugins" / "marketplace.json"
-    if not path.is_file():
-        raise ReleaseError("missing_file", "OpenAI marketplace is missing")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ReleaseError("surface_mismatch", "OpenAI marketplace is invalid")
-    plugins = data.get("plugins")
-    if not isinstance(plugins, list) or len(plugins) != 1 or not isinstance(plugins[0], dict):
-        raise ReleaseError("surface_mismatch", "OpenAI marketplace must name one local package")
-    source = plugins[0].get("source")
-    if not isinstance(source, dict):
-        raise ReleaseError("surface_mismatch", "OpenAI marketplace source is missing")
-    plugin_path = source.get("path")
-    if source.get("source") != "local" or not isinstance(plugin_path, str):
-        raise ReleaseError("surface_mismatch", "OpenAI marketplace must use a local path")
-    if not plugin_path.startswith("./dist/plugins/") or "catalog/engineering" in plugin_path:
-        raise ReleaseError("surface_mismatch", "OpenAI marketplace must point at the built package")
-    return data
 
 
 def main() -> int:
@@ -216,7 +193,7 @@ def _repository_release(repository: Path) -> str:
 
 
 def _source_merged(repository: Path, commit: str) -> bool:
-    if os.environ.get("GITHUB_REF") == "refs/heads/main":
+    if os.environ.get("GITHUB_REF") == "refs/heads/main" and os.environ.get("GITHUB_SHA") == commit:
         return True
     result = subprocess.run(
         ["git", "-C", str(repository), "merge-base", "--is-ancestor", commit, "main"],

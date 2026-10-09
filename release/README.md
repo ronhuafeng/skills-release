@@ -1,7 +1,9 @@
 # Release
 
 Develop and review changes in the public repository. Merging to `main` makes
-the current Skills available through the install command in the root README.
+the committed engineering Plugin source available to the GitHub marketplace;
+each consumer still installs and enables it in a supported client. The root
+README also documents standalone Skills installation.
 There is no export, mirror, or private-source synchronization step.
 
 The Codex and Claude manifests expose the engineering catalog through the same
@@ -21,9 +23,22 @@ does not report implicit-invocation policy. Check that Claude's
 `disable-model-invocation` agrees with the Codex implicit-invocation policy;
 do not remove client-specific fields to pass
 a Codex-only frontmatter allowlist. A valid manifest alone does not prove
-complete discovery or invocation policy. Keep canonical Skill content in the existing catalog. The portable
-engineering Plugin is a generated package under ignored `dist/`; it is not a
+complete discovery or invocation policy. Keep canonical Skill content in the
+existing catalog. The optional portable engineering Plugin is generated under
+ignored `dist/`; it is not a
 second Skill source.
+
+## GitHub engineering Plugin marketplace
+
+The committed `.agents/plugins/marketplace.json` points to the public Git
+repository root at `main`. Its `.codex-plugin/plugin.json` loads
+`catalog/engineering/` directly. From a clean checkout, run
+`uv run --locked --project harnesses pytest release/plugin_build/tests/test_marketplace.py`
+to verify the marketplace source, Plugin identity, and tracked Skill inventory
+without generating `dist/`. A passing contract is source evidence only. In a
+supported client, add the marketplace, install/enable the Plugin, and verify
+Skill discovery and activation separately. The repository's CI does not claim
+live installation or activation.
 
 
 ## Portable engineering Plugin
@@ -43,12 +58,13 @@ The build checks shared identity fields against the Codex and Claude
 compatibility manifests. It does not require those whole files to equal the
 portable manifest. It does not publish the Plugin.
 
-`verify` keeps separate jobs. **Plugin distribution contracts** proves the
-package structure only. **Plugin activation evaluation** checks the labelled
+`verify` keeps separate jobs. **Plugin distribution contracts** checks the
+committed marketplace source without building a package. **Plugin activation
+evaluation** checks the labelled
 golden prompts and reports live activation as unavailable when this repository
 has no supported Plugin surface. A green distribution job does not mean a
-Skill was selected. **Plugin release ladder** reports the publication state.
-It does not publish the Plugin.
+Skill was selected. **Plugin release ladder** tests the optional portable
+builder and reports ZIP publication state. It does not publish the Plugin.
 
 ## Plugin publication states
 
@@ -65,13 +81,13 @@ earlier one:
 | `source_merged` | The canonical commit is on `main`. No package is required. |
 | `package_built` | The ZIP and provenance name that commit and the Plugin version. |
 | `package_verified` | Distribution contracts passed and live activation passed for that ZIP. Unavailable activation does not verify the package. |
-| `bounded_distribution` | The verified package is available through a workspace or `.agents/plugins/marketplace.json`. The marketplace path can be answered earlier. That path alone is not this state, and it is not public. |
+| `bounded_distribution` | The verified package is available through an explicitly configured bounded package surface. GitHub repository marketplace availability is separate from this ZIP state. |
 | `public_approved` | An operator reviewed the package, behavior evidence, `release/plugins/engineering/release-notes.md`, and `release/plugins/engineering/activation/golden-prompts.json`. |
 | `public_published` | The operator published that approved ZIP in the universal Plugins Directory. |
 
-The marketplace points at the built package. It does not copy
-`catalog/engineering/`. The Claude marketplace remains a separate client
-surface. Do not store publisher credentials in Git, GitHub, or the ZIP.
+The GitHub repository marketplace points to the committed Plugin root and does
+not copy `catalog/engineering/`. The Claude marketplace remains a separate
+client surface. Do not store publisher credentials in Git, GitHub, or the ZIP.
 
 A versioned Plugin release attaches that exact ZIP to the release record.
 Record the source commit, Plugin version, ZIP sha256, surface, and state.

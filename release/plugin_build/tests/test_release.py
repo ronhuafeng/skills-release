@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import subprocess
 from pathlib import Path
 
@@ -11,7 +10,7 @@ from plugin_build.release_status import (
     ReleaseRecord,
     current_publication,
     publication_status,
-    read_openai_marketplace,
+    _source_merged,
 )
 
 
@@ -134,18 +133,6 @@ def test_same_version_cannot_replace_a_published_zip() -> None:
     assert caught.value.code == "immutable_artifact"
 
 
-def test_repository_marketplace_points_at_the_built_package_without_skill_copies() -> None:
-    repo = Path(__file__).resolve().parents[3]
-    marketplace = read_openai_marketplace(repo)
-    claude = json.loads((repo / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
-
-    assert marketplace["plugins"][0]["source"]["path"] == "./dist/plugins/ronhuafeng-engineering"
-    assert marketplace["plugins"][0]["source"]["source"] == "local"
-    assert not (repo / ".agents" / "plugins" / "skills").exists()
-    assert claude["plugins"][0]["source"] == "./"
-    assert claude["plugins"][0]["source"] != marketplace["plugins"][0]["source"]["path"]
-
-
 def test_repository_publication_answers_identity_and_surface() -> None:
     repo = Path(__file__).resolve().parents[3]
     report = current_publication(repo)
@@ -155,7 +142,14 @@ def test_repository_publication_answers_identity_and_surface() -> None:
     assert report.package_version == "0.1.0"
     assert report.repository_release == "0.2.0"
     assert report.package_version != report.repository_release
-    assert report.surface == "./dist/plugins/ronhuafeng-engineering"
+    assert report.surface is None
     assert report.plugin_release is False
     assert report.state != "public_published"
     assert report.state != "public_approved"
+
+
+def test_unrelated_main_ci_environment_does_not_mark_feature_commit_merged(monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = Path(__file__).resolve().parents[3]
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
+    monkeypatch.setenv("GITHUB_SHA", "1" * 40)
+    assert _source_merged(repo, "0" * 40) is False

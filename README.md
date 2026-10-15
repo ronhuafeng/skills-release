@@ -16,6 +16,7 @@ This map explains how the main Skills relate. It is not a second catalog.
 
 | Job | Skill |
 |-----|-------|
+| Install project-scoped Codex specialist agents | [`engineering-agent-kit`](catalog/engineering/engineering-agent-kit/) |
 | Plan an ordered delivery path | [`plan-issue-roadmap`](catalog/engineering/plan-issue-roadmap/) |
 | Implement an accepted ticket queue | [`implement-tickets`](catalog/engineering/implement-tickets/) |
 | Reduce unnecessary engineering context | [`context-reduce`](catalog/engineering/context-reduce/) |
@@ -24,6 +25,8 @@ This map explains how the main Skills relate. It is not a second catalog.
 | Check stateful and concurrent designs | [`model-with-tla`](catalog/engineering/model-with-tla/) |
 | Manage Skill placement | [`skill-manager`](catalog/codex-skills/skill-manager/) |
 | Manage Codex sessions | [`session-management`](catalog/codex-sessions/session-management/) |
+
+Codex Plugin installation exposes `$engineering-agent-kit` and the five TOML templates as Skill resources. It does **not** register subagents automatically: Codex discovers custom roles under the project's `.codex/agents/` or the user's `~/.codex/agents/`. Invoke `$engineering-agent-kit` to install selected templates into a target project without overwriting local customizations. External `$apple-design` and `$emil-design-eng` are not bundled.
 
 ## Repository layout
 

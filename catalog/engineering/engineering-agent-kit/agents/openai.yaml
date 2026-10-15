@@ -1,0 +1,4 @@
+interface:
+  display_name: "Engineering Agent Kit"
+  short_description: "Install five reusable project-scoped Codex agents"
+  default_prompt: "Use $engineering-agent-kit to install the five specialized Codex agent templates in this project, preserving any existing customizations and validating the copied TOML files."

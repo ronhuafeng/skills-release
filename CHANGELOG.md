@@ -5,6 +5,8 @@ versions.
 
 ## Unreleased
 
+- Add `$engineering-agent-kit` and five reusable Codex subagent templates; explicit project installation avoids unsupported automatic Plugin agent registration.
+
 ## 0.2.0 - 2026-10-08
 
 - Package the engineering catalog as the `ronhuafeng-engineering` source plugin

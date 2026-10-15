@@ -8,7 +8,7 @@
     "interface": {
       "displayName": "Engineering",
       "shortDescription": "Plan, implement, and review",
-      "longDescription": "Engineering skills for planning, implementation, context reduction, live evidence review, UI design, diagrams, and stateful-system verification.",
+      "longDescription": "Engineering skills for planning, agent setup, implementation, context reduction, live evidence review, UI design, diagrams, and stateful-system verification.",
       "developerName": "ronhuafeng",
       "category": "Developer Tools",
       "capabilities": [

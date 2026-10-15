@@ -164,3 +164,25 @@ def test_ignored_untracked_skill_cannot_become_inventory(checkout: Path) -> None
         excludes.write("\ncatalog/engineering/ignored-skill/\n")
     with pytest.raises(MarketplaceError, match="uncommitted engineering Skill inventory"):
         verify_marketplace_checkout(checkout)
+
+def test_engineering_agent_kit_templates_are_valid(checkout: Path) -> None:
+    import tomllib
+
+    root = checkout / "catalog/engineering/engineering-agent-kit"
+    expected = {
+        "product_architect",
+        "interaction_designer",
+        "ui_engineer",
+        "quality_reviewer",
+        "context_maintainer",
+    }
+    templates = list((root / "templates").glob("*.toml"))
+    assert {path.stem for path in templates} == expected
+    assert (root / "SKILL.md").is_file()
+    for path in templates:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+        assert data["name"] == path.stem
+        assert data["description"].strip()
+        assert data["developer_instructions"].strip()
+        assert "$" in data["developer_instructions"]
+    assert "engineering-agent-kit" in verify_marketplace_checkout(checkout).skills

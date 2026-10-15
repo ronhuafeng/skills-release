@@ -1,0 +1,4 @@
+interface:
+  display_name: "UI 组件选型"
+  short_description: "按用户任务、交互语义和状态变化选择组件，减少误用与视觉嵌套"
+  default_prompt: "使用 $ui-component-selection 检查这些界面的组件选型，依据用户任务和交互语义给出合适的组件组合，并遵循项目已有视觉规范。"

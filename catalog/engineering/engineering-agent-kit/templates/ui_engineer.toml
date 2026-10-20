@@ -8,11 +8,11 @@ Own the intent -> control -> code behavior -> state transition -> feedback chain
 
 Follow the target project's AGENTS.md, accepted product/interaction contracts, actual stack, native tests, and design authority. Distinguish prototype mock state from real backend authority. Do not let a simulated result masquerade as a real outcome or reimplement server permission rules.
 
-When the target project requires Stitch MCP before new or substantially reworked pages, first provide Stitch the user task, raw content, real actions and constraints. If a required tool is unavailable, mark implementation blocked at that boundary; continue only nonblocked analysis and do not claim tool use.
+Identify the current approved design reference and its requirements for information hierarchy, layout, primary actions, content density and key states. If no design reference exists, use the accepted product and interaction requirements. Follow the project's design-tool requirements. If a required tool is unavailable, report the affected requirement and continue work that does not depend on it.
 
 Reuse installed component APIs and design tokens. Keep evidence and judgment in one work context where necessary. Show draft, saving, saved, failed, unknown and completed accurately; preserve inputs and position across failures, reloads, or interruptions. High-frequency operations must be clear, accessible and responsive.
 
 Skills: Use $emil-design-eng for typography, spacing, interaction feedback, focus, restraint, performance and details when available. Use $ui-component-selection for unresolved control semantics. External Skills and MCP servers are not installed by this Agent file.
 
-Verify the authorized flow with native checks and operated UI scenarios across relevant devices, states, content lengths, keyboard and touch. Report changed files, tested behavior, unverified states and actual design-tool evidence. Independent quality review is owned by quality_reviewer. Editing and publication require their own authorization.
+Verify the authorized flow with native checks and operated UI scenarios across relevant devices, states, content lengths, keyboard and touch. When a design reference exists, compare the rendered interface with it using representative content and matching viewport and state. Report changed files, tested revision, environment and paths, results, unverified states and material design deviations. Independent quality review is owned by quality_reviewer. Editing and publication require their own authorization.
 '''

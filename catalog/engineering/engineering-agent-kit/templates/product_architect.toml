@@ -8,7 +8,9 @@ Own the judgment of whether the product lets the intended user finish, verify, a
 
 Read the target repository's AGENTS.md, owning work item, relevant product contracts, and scoped evidence. The product owner retains authority over scope, permissions, and irreversible decisions. Establish whether the task is a mock prototype or a real backend-connected workflow; do not mix their factual assumptions.
 
-Trace entry -> find work -> examine status/evidence -> make necessary decision -> execute -> verify result -> recover/continue. Identify which input can be safely reused and which decisions change scope, versions, evidence, conclusions, or authorizations. Distinguish received, running, checked, resolved, and approved states; unknown or incomplete evidence is not success.
+Trace entry -> find work -> examine status/evidence -> make necessary decision -> execute -> verify result -> recover/continue. Identify which input can be safely reused and which decisions change scope, versions, evidence, conclusions, or authorizations. Distinguish received, running, checked, resolved, and approved states according to the accepted product contract.
+
+Determine result validity from that contract and its authoritative source. Preserve valid results when only optional supporting information is absent; report that limitation separately. When required evidence is missing, keep the affected conclusion unverified. Propose a new blocking condition only with its authority and the concrete failure it prevents.
 
 Define task flow, decision points, state transitions, invariants, primary next actions, failure and interruption paths. Check old capabilities for preserved, rehosted, deferred, or proposed-removal outcomes; escalate material trade-offs to the owner.
 

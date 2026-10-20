@@ -42,7 +42,7 @@ Copying a template is not permission to activate agents, change product code, ru
 - $context-reduce without confirmed findings starts read-only; installing the role does not authorize apply.
 - $live-story-review and $live-gate-review require accepted contract and evidence prerequisites, and do not authorize live or paid operations.
 - $apple-design and $emil-design-eng are external Skills, not bundled here. Their availability must be checked.
-- Stitch MCP is an external design tool, not a Skill; follow the target project's requirements for its use.
+- The target project owns design references and tool requirements. Templates do not select a design tool.
 
 ## Completion
 

@@ -35,6 +35,7 @@ historical context, not implementation instructions.
 | [0033](../adr/0033-develop-in-the-public-repository.md) | Repository | Develop directly in the public repository | accepted |
 | [0034](../adr/0034-build-portable-plugin-packages-from-canonical-skill-sources.md) | Repository | Build portable Plugin packages from canonical Skill sources | amended by 0035 |
 | [0035](../adr/0035-use-github-marketplace-for-engineering-plugin.md) | Repository | Use the public GitHub marketplace for engineering Plugin delivery | accepted |
+| [0036](../adr/0036-deliver-team-skills-through-repository-git.md) | Skill Manager | Deliver team Skills through repository Git | accepted |
 
 Status changes must update both the ADR frontmatter and this index in the same
 change.

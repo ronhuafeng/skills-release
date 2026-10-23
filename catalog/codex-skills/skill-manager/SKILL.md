@@ -15,7 +15,11 @@ inspect Git or hosts, calculate identity, plan guarded filesystem changes, apply
 an approved plan, and verify postconditions. Do not turn those observations
 into an automatic policy or a durable workflow state machine.
 
-Before `sync`, `vendor`, or `refresh-source`, read
+For team repository copies, prefer committed files updated through the
+repository's Git workflow. Read `commands/vendor.md`; this path does not
+require a host profile or Fleet enrollment.
+
+Before managed `sync`, `vendor`, or `refresh-source`, read
 [`references/cross-host-reconciliation.md`](references/cross-host-reconciliation.md).
 Establish the current desired-state owner:
 
@@ -45,9 +49,9 @@ until ownership is known.
   placements. Read `commands/refresh-source.md`.
 - `sync`: manage global or Linked symlink exposure. Read `commands/sync.md` and
   `commands/sync-cross-host.md` when another host is involved.
-- `vendor`: manage provenance-bound repository snapshots. Read
-  `commands/vendor.md` and `commands/vendor-cross-host.md` when another host is
-  involved.
+- `vendor`: copy accepted Skills into a repository. Read `commands/vendor.md`;
+  for explicitly managed cross-host snapshots, also read
+  `commands/vendor-cross-host.md`.
 
 Route source additions, deletions, renames, or changed skill contracts to
 `refresh-source`. Route ordinary link exposure to `sync`, materialized copies
@@ -61,7 +65,7 @@ through `apply`; do not manually assemble public mutation requests.
 
 - Show the semantic diff and destructive scope before mutation. An explicit
   execution request is approval only for the scope it clearly names.
-- Use guarded link or snapshot plan/apply primitives for filesystem placement.
+- Use guarded link or snapshot plan/apply primitives for manager-owned placement.
   Accepted Fleet authority can restore names inside its exact scope; otherwise
   never overwrite an unknown directory or a divergent managed snapshot.
 - Treat upstream Skill content as immutable. When Fleet config overrides

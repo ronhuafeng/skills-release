@@ -109,8 +109,23 @@ npx skills@latest add ronhuafeng/skills-release \
   -g --agent codex --skill context-reduce
 ```
 
-Use [`skill-manager`](catalog/codex-skills/skill-manager/) when placement
-needs ownership, provenance, or multi-host reconciliation.
+Use [`skill-manager`](catalog/codex-skills/skill-manager/) when personal global
+placement needs ownership, provenance, or multi-host reconciliation.
+
+### Repository-local Skills
+
+For a team that must use Skills without an installer or Skill Manager, commit
+complete Skill directories under `.agents/skills/`. The repository accepts
+updates through its normal review and integration workflow; developers receive
+the accepted files through clone and pull. Keep one source record with the
+upstream repository, revision and source paths, or state repository ownership.
+Include required resources, client metadata and licenses. Runtime tools remain
+explicit prerequisites.
+
+Use one delivery route for the same Skills in that repository. Personal global
+configuration and a Plugin installation must not be prerequisites for its local
+copies. See [Vendor Skills](catalog/codex-skills/skill-manager/commands/vendor.md)
+for ownership and update boundaries.
 
 ### Runtime prerequisites
 

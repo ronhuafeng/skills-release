@@ -1,7 +1,7 @@
 interface:
   display_name: "Skill Registry Manager"
   short_description: "Manage and audit Agent Skills registries"
-  default_prompt: "Use $skill-manager to inspect or recommend Skill placement, render or audit fleet desired state, reconcile an accepted source, or apply guarded link and snapshot placement through explicit Fleet or profile authority."
+  default_prompt: "Use $skill-manager to inspect Skills, prepare Git-owned repository copies, or reconcile explicitly managed registries and Fleet placements."
 
 policy:
   allow_implicit_invocation: false

@@ -15,9 +15,13 @@ inspect Git or hosts, calculate identity, plan guarded filesystem changes, apply
 an approved plan, and verify postconditions. Do not turn those observations
 into an automatic policy or a durable workflow state machine.
 
-Before `sync`, `vendor`, or `refresh-source`, read
+For team repository copies, prefer committed files updated through the
+repository's Git workflow. Read `commands/vendor.md`; this path does not
+require a host profile or Fleet enrollment.
+
+Before manager-owned `sync`, `vendor`, or `refresh-source` operations, read
 [`references/cross-host-reconciliation.md`](references/cross-host-reconciliation.md).
-Establish the current desired-state owner:
+For those managed operations, establish the current desired-state owner:
 
 - an explicit Fleet Manifest for an enrolled host; or
 - one explicit host-local profile when no Fleet Manifest owns that host.
@@ -45,23 +49,25 @@ until ownership is known.
   placements. Read `commands/refresh-source.md`.
 - `sync`: manage global or Linked symlink exposure. Read `commands/sync.md` and
   `commands/sync-cross-host.md` when another host is involved.
-- `vendor`: manage provenance-bound repository snapshots. Read
-  `commands/vendor.md` and `commands/vendor-cross-host.md` when another host is
-  involved.
+- `vendor`: copy accepted Skills into a repository. Read `commands/vendor.md`;
+  for explicitly managed cross-host snapshots, also read
+  `commands/vendor-cross-host.md`.
 
-Route source additions, deletions, renames, or changed skill contracts to
-`refresh-source`. Route ordinary link exposure to `sync`, materialized copies
-to `vendor`, and read-only questions to `inspect`, `recommend`,
-`render-profile`, or `fleet-audit`. A read-only command may name the required
-mutation command, but it does not run that command or grant mutation authority.
-When an enrolled Fleet Manifest owns the requested mutation, route execution
-through `apply`; do not manually assemble public mutation requests.
+For manager-owned placements, route source additions, deletions, renames, or
+changed skill contracts to `refresh-source`. Route Git-owned repository Skill
+updates through the repository's Git workflow. Route ordinary link exposure to
+`sync`, explicitly managed materialized copies to `vendor`, and read-only
+questions to `inspect`, `recommend`, `render-profile`, or `fleet-audit`. A
+read-only command may name the required mutation command, but it does not run
+that command or grant mutation authority. When an enrolled Fleet Manifest owns
+the requested mutation, route execution through `apply`; do not manually
+assemble public mutation requests.
 
 ## Safety and completion
 
 - Show the semantic diff and destructive scope before mutation. An explicit
   execution request is approval only for the scope it clearly names.
-- Use guarded link or snapshot plan/apply primitives for filesystem placement.
+- Use guarded link or snapshot plan/apply primitives for manager-owned placement.
   Accepted Fleet authority can restore names inside its exact scope; otherwise
   never overwrite an unknown directory or a divergent managed snapshot.
 - Treat upstream Skill content as immutable. When Fleet config overrides

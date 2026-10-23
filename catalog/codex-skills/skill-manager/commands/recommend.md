@@ -47,7 +47,7 @@ placement is Codex semantic judgment over that evidence.
 5. Assign each skill one proposed exposure:
    - `global`: frequent and broadly applicable with low trigger cost;
    - `repo`: useful for the named repository;
-   - `vendor`: repo-portable, pinned managed snapshot with a known source;
+   - `vendor`: repo-portable, explicitly managed snapshot with a known source;
    - `manual`: rare, risky, bulky, experimental, or ambiguous;
    - `remove`: broken or explicitly unwanted exposure.
 6. For personal global exposure, prefer source registration plus symlinks.
@@ -81,5 +81,7 @@ Show a proposed diff grouped into:
 - copied directories requiring migration or an ownership decision.
 
 State assumptions and blockers. Do not mutate profile or links. Route accepted
-Linked placement to `sync` and Vendored placement to `vendor`; each mutation
-must establish Fleet or explicit profile authority first.
+Linked placement to `sync` and explicitly managed Vendored placement to
+`vendor`. A Git-owned repository Skill update follows the target repository's
+Git workflow. Each manager-owned mutation must establish Fleet or explicit
+profile authority first.

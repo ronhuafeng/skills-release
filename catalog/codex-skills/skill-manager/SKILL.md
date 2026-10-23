@@ -53,13 +53,15 @@ until ownership is known.
   for explicitly managed cross-host snapshots, also read
   `commands/vendor-cross-host.md`.
 
-Route source additions, deletions, renames, or changed skill contracts to
-`refresh-source`. Route ordinary link exposure to `sync`, materialized copies
-to `vendor`, and read-only questions to `inspect`, `recommend`,
-`render-profile`, or `fleet-audit`. A read-only command may name the required
-mutation command, but it does not run that command or grant mutation authority.
-When an enrolled Fleet Manifest owns the requested mutation, route execution
-through `apply`; do not manually assemble public mutation requests.
+For manager-owned placements, route source additions, deletions, renames, or
+changed skill contracts to `refresh-source`. Route Git-owned repository Skill
+updates through the repository's Git workflow. Route ordinary link exposure to
+`sync`, explicitly managed materialized copies to `vendor`, and read-only
+questions to `inspect`, `recommend`, `render-profile`, or `fleet-audit`. A
+read-only command may name the required mutation command, but it does not run
+that command or grant mutation authority. When an enrolled Fleet Manifest owns
+the requested mutation, route execution through `apply`; do not manually
+assemble public mutation requests.
 
 ## Safety and completion
 

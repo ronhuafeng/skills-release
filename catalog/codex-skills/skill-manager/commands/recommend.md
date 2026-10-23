@@ -27,14 +27,17 @@ Propose a small, explainable skill placement diff without changing files.
 
 ## Evidence Command
 
-Use the `inspect` orchestration command and bounded environment discovery from
-`commands/inspect.md` for evidence. Do not create a separate recommend command:
-placement is Codex semantic judgment over that evidence.
+For manager-owned registry recommendations, use the `inspect` orchestration
+command and bounded environment discovery from `commands/inspect.md`. For
+Git-owned repository Skill updates, read the target repository's tracked files,
+existing source record, and Git state directly; no profile or Fleet inspection
+is required. Do not create a separate recommend command: placement is Codex
+semantic judgment over the relevant evidence.
 
 ## Workflow
 
-1. Inspect the relevant global, repo, profile, source, agent-native, plugin, and
-   agent-reported exposure without mutation.
+1. Gather relevant exposure evidence without mutation. Follow the Evidence
+   Command route and omit profiles or hosts that do not own the target.
 2. For repository intent, read only bounded signals such as `AGENTS.md`,
    `CONTEXT.md`, `.agents/skills`, and the primary package manifests. Do not
    search the whole repository for keyword matches.

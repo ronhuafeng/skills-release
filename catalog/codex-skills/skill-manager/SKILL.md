@@ -19,9 +19,9 @@ For team repository copies, prefer committed files updated through the
 repository's Git workflow. Read `commands/vendor.md`; this path does not
 require a host profile or Fleet enrollment.
 
-Before managed `sync`, `vendor`, or `refresh-source`, read
+Before manager-owned `sync`, `vendor`, or `refresh-source` operations, read
 [`references/cross-host-reconciliation.md`](references/cross-host-reconciliation.md).
-Establish the current desired-state owner:
+For those managed operations, establish the current desired-state owner:
 
 - an explicit Fleet Manifest for an enrolled host; or
 - one explicit host-local profile when no Fleet Manifest owns that host.

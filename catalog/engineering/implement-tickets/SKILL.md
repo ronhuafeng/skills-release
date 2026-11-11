@@ -1,6 +1,8 @@
 ---
 name: implement-tickets
 description: Process an ordered list of confirmed tickets one at a time through implementation and repository-defined remote integration. Use when the user asks Codex to complete a ticket queue, issue set, milestone slice, or ordered backlog in a temporary or persistent repository environment.
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Implement Tickets

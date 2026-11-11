@@ -137,6 +137,8 @@ def test_committed_unsafe_resources_fail(checkout: Path, mutation: str) -> None:
         (root / "references").symlink_to(saved, target_is_directory=True)
     elif mutation == "case-collision":
         (root / "SKILL.MD").write_text("collision\n")
+        if (root / "SKILL.md").read_text() == "collision\n":
+            pytest.skip("case-insensitive filesystem cannot hold two paths differing only by case")
     else:
         git(checkout, "update-index", "--add", "--cacheinfo", f"160000,{git(checkout, 'rev-parse', 'HEAD').stdout.decode().strip()},catalog/engineering/context-reduce/submodule")
     if mutation == "gitlink":

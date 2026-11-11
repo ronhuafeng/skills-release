@@ -1,6 +1,6 @@
 ---
 name: context-reduce
-description: Reduce the context needed to make safe engineering changes without weakening current behavior or essential correctness boundaries. Use when the user asks for just enough context, Radical KISS, an over-design review, the shortest correct path, or lower maintenance overhead. Do not use for ordinary code review, copy editing, or UI-only design.
+description: Reduce the context needed to make safe engineering changes without weakening current behavior or essential correctness boundaries. Use when the user asks for just enough context, only useful context, an over-design review, the shortest correct path, or lower maintenance overhead. Do not use for ordinary code review, copy editing, or UI-only design.
 ---
 
 # Reduce Engineering Context

@@ -1,13 +1,14 @@
 ---
 name: prune-legacy
-description: 仅限用户显式调用 $prune-legacy。基于当前代码、实际调用关系和可重复运行证据，审查或删除旧类型、旧 schema、adapter、deprecated API、兼容路径、fallback、双执行路径、死代码以及失效测试和文档。
+description: 仅限用户显式调用 $prune-legacy（Codex）或 /prune-legacy（Claude Code）。基于当前代码、实际调用关系和可重复运行证据，审查或删除旧类型、旧 schema、adapter、deprecated API、兼容路径、fallback、双执行路径、死代码以及失效测试和文档。
 user-invocable: true
 disable-model-invocation: true
 ---
 
 # Prune Legacy Paths
 
-仅在用户显式调用 `$prune-legacy` 时执行本 skill。
+仅在用户显式调用本 skill 时执行：Codex 使用 `$prune-legacy`，Claude Code 使用
+`/prune-legacy`。
 
 根据用户请求选择一个动作，读取对应文档，然后严格按该文档执行：
 
@@ -20,6 +21,7 @@ disable-model-invocation: true
 
 - `使用 $prune-legacy review 审查 <范围> 中的 legacy 实现。`
 - `使用 $prune-legacy apply 修复已确认的 LP-01 和 LP-02。`
+- `/prune-legacy review 审查 <范围> 中的 legacy 实现。`
 
 只有名称、注释、年代或历史印象不能证明实现已经失效。必须以当前实现、
 实际调用关系、现行契约或可重复运行结果为依据。

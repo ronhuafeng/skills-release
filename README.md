@@ -35,7 +35,9 @@ Codex Plugin installation exposes `$engineering-agent-kit` and the five TOML tem
   required by its contract.
 - [`agents/recruit.md`](agents/recruit.md) is an explicitly loaded meta-agent
   contract for proposing specialist roles from retrospective evidence.
-  `agents/` prompts are not installed Skills or automatically activated agents.
+  `agents/` prompts are not installed Skills. Codex does not activate them;
+  Claude Code registers them as plugin subagents whose descriptions restrict
+  delegation to explicit requests.
 - [`harnesses/`](harnesses/) contains reusable mechanical APIs used by Skills.
 - [`docs/`](docs/) contains current architecture and verification decisions.
 

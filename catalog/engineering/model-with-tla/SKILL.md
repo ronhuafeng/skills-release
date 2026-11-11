@@ -1,6 +1,8 @@
 ---
 name: model-with-tla
 description: Model, diagnose, refine, review, and verify concurrent and high-risk stateful systems with TLA+. Use when correctness depends on overlapping operations, consistency histories, event ordering, delayed results, retries, lifecycle, authority, ownership, cleanup, recovery, freshness, or eventual progress; when creating or updating .tla or .cfg files; when converting a failure into a counterexample; or when checking whether models, adapters, tests, and scoped live evidence support one contract.
+user-invocable: true
+disable-model-invocation: true
 ---
 
 # Model concurrent and stateful systems with TLA+
@@ -40,6 +42,14 @@ are read-only. `diagnose` does not change product code.
 
 Skip this Skill for presentation-only UI, static content, or deterministic
 single-step behavior without a meaningful state lifecycle.
+
+## Prerequisites
+
+Running the bundled [TLC tool](references/tlc-tool.md) requires Java 11 or
+newer (set `TLA_JAVA` when the default Java is older) and `uv` on `PATH`. The
+first `tla-check` run uses `uv` to provision Python 3.11 and the checker
+environment: it needs network access and creates `orchestration/.venv` inside
+this Skill directory. Later runs reuse that environment.
 
 ## Route domain references
 

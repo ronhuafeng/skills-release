@@ -1,6 +1,6 @@
 ---
 name: ui-component-selection
-description: 根据用户任务、交互语义、状态变化和内容规模选择与组合 UI 组件。用于新界面选型，或审查已有页面中的组件误用和不必要的视觉嵌套。遵循项目既定的 component library 和 design system。
+description: 根据用户任务、交互语义、状态变化和内容规模选择与组合 UI 组件。用于新界面选型，或审查已有页面中的组件误用和不必要的视觉嵌套。遵循项目既定的 component library 和 design system。Use when choosing or combining UI controls (for example Checkbox vs Switch, Tabs vs Dialog, Select vs Combobox) or reviewing component misuse and unnecessary visual nesting.
 ---
 
 # UI 组件选型

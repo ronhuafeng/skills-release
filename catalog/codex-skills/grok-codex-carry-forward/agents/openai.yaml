@@ -1,0 +1,6 @@
+interface:
+  display_name: "Grok Codex Carry-forward"
+  short_description: "Carry Grok changes onto new stock and review evidence"
+  default_prompt: "Use $grok-codex-carry-forward to review the requested Harness-X-Harness/codex version upgrade and its evidence."
+policy:
+  allow_implicit_invocation: false

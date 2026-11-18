@@ -1,0 +1,10 @@
+Grok Codex carry-forward
+Adapted from Harness-X-Harness/codex, commit
+452224f5b6d3c8e5c1e3a4cbd5abe43a0b15cc97 (Apache-2.0).
+Source: https://github.com/Harness-X-Harness/codex/commit/452224f5b6d3c8e5c1e3a4cbd5abe43a0b15cc97
+The skill replaces the former routing/overlay and relocates its policy,
+review, distribution guidance, Git inventory helper and regression tests.
+The source revision is provenance, not a runtime input.
+
+OpenAI Codex
+Copyright 2025 OpenAI

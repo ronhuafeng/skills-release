@@ -5,7 +5,10 @@
 This repository contains reusable Agent Skills maintained by ronhuafeng.
 Committed content must be reusable across projects and must not be a
 third-party mirror, upstream documentation copy, repo-bound runbook, or local
-workspace wiring.
+workspace wiring. The sole project-specific exception is
+[`grok-codex-carry-forward`](catalog/codex-skills/grok-codex-carry-forward/):
+this explicitly invoked skill owns the development process for
+`Harness-X-Harness/codex`, not its product source, Stories or CI.
 
 ## Read route
 

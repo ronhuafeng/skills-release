@@ -1,5 +1,12 @@
 # Third-Party Notices
 
+## Grok Codex carry-forward
+
+The [skill notice](catalog/codex-skills/grok-codex-carry-forward/NOTICE)
+identifies the source revision of the migrated guidance and Python helpers.
+Their [Apache-2.0 license](catalog/codex-skills/grok-codex-carry-forward/LICENSE)
+ships with the standalone skill.
+
 ## TLA+ Tools
 
 [`catalog/engineering/model-with-tla/.tools/tla2tools.jar`](catalog/engineering/model-with-tla/.tools/tla2tools.jar)

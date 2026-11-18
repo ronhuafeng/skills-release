@@ -7,9 +7,11 @@ Develop against this public repository. Submit focused pull requests to `main`.
 A maintainer reviews the scope and validation evidence before merging. No
 private repository or separate synchronization step is required.
 
-Keep a change reusable across projects. Do not add local paths, host inventory,
-session history, credentials, private deployment state, or copied upstream
-documentation.
+Keep changes reusable across projects and do not mirror upstream documentation.
+The [repository boundary](AGENTS.md#repository-boundary) names the single
+exception: the Grok process itself is maintained here, not mirrored.
+Do not add local paths, host inventory, session history, credentials or
+private deployment state.
 
 Before submitting a change:
 

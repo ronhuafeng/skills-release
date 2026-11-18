@@ -29,3 +29,18 @@ does not authorize changes. Branch creation, PR, merge, release, real-provider
 runs and other external effects remain subject to the user's requested scope,
 repository protections and actual credentials. Never infer authority to reset,
 force-push, change protections or delete refs. Verify authorized writes by readback.
+
+## Improve the skill from use
+
+When a run exposes friction, establish the failure, its owner, and why a fix
+would help another run. For example, when a runner cannot supply a pinned
+toolchain, check the pin against the publisher's supported platforms before
+changing the pin or tests. A runner label belongs in its workflow, not here.
+
+If there is a small, reusable correction, update the one owning instruction,
+reference or helper; exercise it on a representative case. For an authorized
+skill-improvement task, commit and push the verified change to its designated
+open development PR and read back the head. If the target or write authority
+is missing, report the proposed fix and evidence instead. Do not turn a
+one-off workaround into policy, open a parallel PR, or infer permission to
+merge, publish or modify a product from using this skill.

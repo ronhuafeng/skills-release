@@ -5,6 +5,7 @@ versions.
 
 ## Unreleased
 
+- Add `$page-to-stitch-screen` to turn an existing page into a Google Stitch screen with matching layout, copy, and colors.
 - Add `$engineering-agent-kit` and five reusable Codex subagent templates; explicit project installation avoids unsupported automatic Plugin agent registration.
 
 ## 0.2.0 - 2026-10-08

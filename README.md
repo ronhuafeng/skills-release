@@ -18,12 +18,12 @@ This map explains how the main Skills relate. It is not a second catalog.
 |-----|-------|
 | Install project-scoped Codex specialist agents | [`engineering-agent-kit`](catalog/engineering/engineering-agent-kit/) |
 | Plan an ordered delivery path | [`plan-issue-roadmap`](catalog/engineering/plan-issue-roadmap/) |
-| Implement an accepted ticket queue | [`implement-tickets`](catalog/engineering/implement-tickets/) |
 | Reduce unnecessary engineering context | [`context-reduce`](catalog/engineering/context-reduce/) |
 | Remove replaced implementation paths | [`prune-legacy`](catalog/engineering/prune-legacy/) |
 | Define and audit live evidence | [`live-story-review`](catalog/engineering/live-story-review/) and [`live-gate-review`](catalog/engineering/live-gate-review/) |
 | Check stateful and concurrent designs | [`model-with-tla`](catalog/engineering/model-with-tla/) |
 | Manage Skill placement | [`skill-manager`](catalog/codex-skills/skill-manager/) |
+| Resume agent work when an external condition changes | [`rendezvous`](catalog/engineering/rendezvous/) |
 | Manage Codex sessions | [`session-management`](catalog/codex-sessions/session-management/) |
 
 Codex Plugin installation exposes `$engineering-agent-kit` and the five TOML templates as Skill resources. It does **not** register subagents automatically: Codex discovers custom roles under the project's `.codex/agents/` or the user's `~/.codex/agents/`. Invoke `$engineering-agent-kit` to install selected templates into a target project without overwriting local customizations. External `$apple-design` and `$emil-design-eng` are not bundled.
@@ -95,9 +95,9 @@ in a new session. The plugin adds no MCP server, hook, or authentication require
 It does not include `skill-manager` or `session-management`.
 
 Plugin installation does not install system tools or external Skills.
-`implement-tickets` still needs Matt's `implement`, `tdd`, and `code-review`;
-`model-with-tla` still needs uv and Java 11+. Existing Skill invocation policies
-and bundled resources are unchanged.
+`model-with-tla` still needs uv and Java 11+. `rendezvous` requires an environment-supported
+wait or monitoring mechanism and a supported way to resume its target; installing
+Skill files alone does not provide background execution.
 
 ### Standalone Skills compatibility
 

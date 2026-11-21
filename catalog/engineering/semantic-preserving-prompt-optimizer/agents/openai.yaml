@@ -1,0 +1,4 @@
+interface:
+  display_name: "Semantic Prompt Optimizer"
+  short_description: "Rewrite prompts without changing operational semantics"
+  default_prompt: "Use $semantic-preserving-prompt-optimizer to rewrite the supplied prompt as a compact declarative specification while preserving all requirements, permissions, and exceptions."

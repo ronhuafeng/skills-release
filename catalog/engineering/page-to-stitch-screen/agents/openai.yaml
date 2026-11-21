@@ -1,0 +1,4 @@
+interface:
+  display_name: "页面做成 Stitch 画面"
+  short_description: "按已有页面的布局、文案和颜色做 Stitch 画面"
+  default_prompt: "使用 $page-to-stitch-screen，把这些已有页面按布局、文案和颜色做成 Google Stitch 画面。"
